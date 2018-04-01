@@ -4,14 +4,10 @@
 from lxml import html
 
 import requests
-
-part='contentDetails,snippet'
-per_page='10'
-playlist_id='UUbu2SsF-Or3Rsn3NxqODImw'
-api_key = 'AIzaSyCbEOvBCOQrBl4xHaKoDaSguRxmC4RZUiE'
+import const
 
 #make API link
-url = 'https://www.googleapis.com/youtube/v3/playlistItems?part='+part+'+&maxResults='+per_page+'&playlistId='+playlist_id+'&key='+api_key
+url = 'https://www.googleapis.com/youtube/v3/playlistItems?part='+const.PART+'+&maxResults='+const.PER_PAGE+'&playlistId='+const.PLAYLIST_ID+'&key='+const.API_KEY
 #send request with fake browser (Avoid 403 error)
 data = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
 #parse data
