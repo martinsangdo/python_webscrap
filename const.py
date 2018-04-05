@@ -1,7 +1,7 @@
 #constant
 PART='contentDetails,snippet'
 PER_PAGE='10'
-API_KEY = 'AIzaSyCbEOvBCOQrBl4xHaKoDaSguRxmC4RZUiE'
+API_KEY = 'AIzaSyBvJB-LtVDeazbYIEzukQfaqIboAp7wM68'
 #database
 # ln -s /Applications/MAMP/tmp/mysql/mysql.sock /tmp/mysql.sock
 HOSTNAME = 'localhost'
