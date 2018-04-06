@@ -45,10 +45,9 @@ def get_meaningful_detail(site_info, post_raw_detail):
 		'time': post_raw_detail['date'],
 		'author_name': '',
 		'excerpt': post_raw_detail['excerpt']['rendered'],
-		'category_name': '',      #should be first category
-		'category_slug': '',
 		'original_post_id': post_raw_detail['id'],
-		'original_url': post_raw_detail['link']
+		'original_url': post_raw_detail['link'],
+		'categories': post_raw_detail['categories']		#this one not exist in DB
 	}
 	#get thumbnail url
 	data_row['thumb_url'] = get_thumbnail_url(site_info, post_raw_detail)
@@ -58,12 +57,6 @@ def get_meaningful_detail(site_info, post_raw_detail):
 		user_json = user_info.json()
 		if (user_json is not None and 'name' in user_json):
 			data_row['author_name'] = user_json['name']
-	#get category name (the first one)
-	if (len(post_raw_detail['categories']) > 0):
-		cat_info = requests.get(site_info[1]+'categories/'+str(post_raw_detail['categories'][0]), headers=const.REQUEST_HEADER);
-		cat_json = cat_info.json()
-		data_row['category_name'] = cat_json['name'];
-		data_row['category_slug'] = cat_json['slug'];
 	return data_row;
 
 if (len(sys.argv) == 1):	#empty parameter
@@ -91,19 +84,46 @@ for post_detail in final_data:
 	cursor.execute(existed_sql)
 	if (cursor.rowcount > 0):
 		#existed, update to DB
-		update_sql = ('UPDATE block_content SET title=%s,thumb_url=%s,slug=%s,time=%s,author_name=%s,excerpt=%s,category_name=%s,category_slug=%s,original_url=%s '+
+		update_sql = ('UPDATE block_content SET title=%s,thumb_url=%s,slug=%s,time=%s,author_name=%s,excerpt=%s,original_url=%s '+
 			'WHERE site_id='+str(site_info[0])+' AND original_post_id='+str(post_detail['original_post_id']))
 		cursor.execute(update_sql, (post_detail['title'], post_detail['thumb_url'], post_detail['slug'], post_detail['time'],
-				post_detail['author_name'], post_detail['excerpt'], post_detail['category_name'], post_detail['category_slug'], post_detail['original_url']))
-		# Make sure data is committed to the database
+				post_detail['author_name'], post_detail['excerpt'], post_detail['original_url']))
 		myConnection.commit()
 	else:
 		#insert new one
-		insert_sql = ('INSERT INTO block_content (site_id,title,thumb_url,slug,time,author_name,excerpt,category_name,category_slug,original_url,original_post_id) '+
-			'VALUES (%(site_id)s,%(title)s,%(thumb_url)s,%(slug)s,%(time)s,%(author_name)s,%(excerpt)s,%(category_name)s,%(category_slug)s,%(original_url)s,%(original_post_id)s)')
+		insert_sql = ('INSERT INTO block_content (site_id,title,thumb_url,slug,time,author_name,excerpt,original_url,original_post_id) '+
+			'VALUES (%(site_id)s,%(title)s,%(thumb_url)s,%(slug)s,%(time)s,%(author_name)s,%(excerpt)s,%(original_url)s,%(original_post_id)s)')
 		cursor.execute(insert_sql, post_detail)
-		# Make sure data is committed to the database
 		myConnection.commit()
+		#get categories of each post, save to DB
+		if (len(post_detail['categories']) > 0):
+			inserted_post_id = cursor.lastrowid
+			for cat_id in post_detail['categories']:
+				cat_info = requests.get(site_info[1]+'categories/'+str(cat_id), headers=const.REQUEST_HEADER);
+				cat_json = cat_info.json()
+				#check if category existed in DB
+				existed_sql = 'SELECT _id FROM category WHERE site_id='+str(site_info[0])+' AND site_cat_id='+str(cat_id)
+				cursor.execute(existed_sql)
+				if (cursor.rowcount == 0):
+					#not existed, insert new category
+					insert_sql = ('INSERT INTO category (name, slug, site_id, site_cat_id) '+
+						'VALUES (%(name)s,%(slug)s,%(site_id)s,%(site_cat_id)s)')
+					cat_detail = {
+						'name': cat_json['name'],
+						'slug': cat_json['slug'],
+						'site_id': site_info[0],
+						'site_cat_id': cat_id
+					}
+					cursor.execute(insert_sql, cat_detail)
+					myConnection.commit()
+					#create relationship
+					insert_sql = ('INSERT INTO category_post (cat_id, post_id) VALUES (%(cat_id)s,%(post_id)s)')
+					rel_detail = {
+						'cat_id': cat_id,
+						'post_id': inserted_post_id
+					}
+					cursor.execute(insert_sql, rel_detail)
+					myConnection.commit()
 	#update crawling time of site
 	update_sql = ('UPDATE site SET crawl_time=%s WHERE _id='+str(site_info[0]))
 	cursor.execute(update_sql, [str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))])
