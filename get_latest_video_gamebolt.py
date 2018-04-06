@@ -35,7 +35,7 @@ def doQuery(conn, video_list) :
 #make API link
 url = 'https://www.googleapis.com/youtube/v3/playlistItems?part='+const.PART+'+&maxResults='+const.PER_PAGE+'&playlistId='+PLAYLIST_ID+'&key='+const.API_KEY
 #send request with fake browser (Avoid 403 error)
-data = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
+data = requests.get(url, headers=const.REQUEST_HEADER)
 #parse data
 j = data.json()
 video_list=j['items']
