@@ -6,24 +6,6 @@ import MySQLdb
 import sys
 import datetime
 
-# Simple routine to run a query on a database and print the results:
-def doQuery(conn, video_list) :
-	cur = conn.cursor()
-	for video in video_list:
-		cond_sql = 'SELECT _id FROM video_link WHERE original_id="'+video['snippet']['resourceId']['videoId']+'" AND playlist_id=1'
-		cur.execute(cond_sql)
-		#if found this video in DB, should update it ?
-		if (cur.rowcount == 0):
-			add_row = ('INSERT INTO video_link (original_id, title, thumb_url, playlist_id) VALUES (%(original_id)s, %(title)s, %(thumb_url)s, 1)')
-			data_row = {
-				  'original_id': video['snippet']['resourceId']['videoId'],
-				  'title': video['snippet']['title'],
-				  'thumb_url': video['snippet']['thumbnails']['medium']['url']
-			}
-			cur.execute(add_row, data_row)
-			# Make sure data is committed to the database
-			conn.commit()
-#end doQuery
 
 def getSiteInfo(conn, site_id):
 	cur = conn.cursor()
@@ -38,16 +20,19 @@ def get_thumbnail_url(site_info, post_raw_detail):
 		#there is one attached media
 		media_info = requests.get(post_raw_detail['_links']['wp:featuredmedia'][0]['href'], headers=const.REQUEST_HEADER)
 		media_json = media_info.json()
-		if (media_json['media_details']['sizes']['medium']['source_url'] != ''):
-			return media_json['media_details']['sizes']['medium']['source_url']
-		elif (media_json['media_details']['sizes']['medium_large']['source_url'] != ''):
-			return media_json['media_details']['sizes']['medium_large']['source_url']
-		elif (media_json['media_details']['sizes']['large']['source_url'] != ''):
-			return media_json['media_details']['sizes']['large']['source_url']
-		elif (media_json['media_details']['sizes']['full']['source_url'] != ''):
-			return media_json['media_details']['sizes']['full']['source_url']
+		if (len(media_json['media_details']['sizes']) > 0):
+			if (media_json['media_details']['sizes']['medium']['source_url'] != ''):
+				return media_json['media_details']['sizes']['medium']['source_url']
+			elif (media_json['media_details']['sizes']['medium_large']['source_url'] != ''):
+				return media_json['media_details']['sizes']['medium_large']['source_url']
+			elif (media_json['media_details']['sizes']['large']['source_url'] != ''):
+				return media_json['media_details']['sizes']['large']['source_url']
+			elif (media_json['media_details']['sizes']['full']['source_url'] != ''):
+				return media_json['media_details']['sizes']['full']['source_url']
+			elif (media_json['source_url'] != ''):
+				return media_json['source_url'] + site_info[4]
 		elif (media_json['source_url'] != ''):
-			return media_json['source_url'] + site_info[4];
+			return media_json['source_url'] + site_info[4]
 		return '';
 #end get_thumbnail_url
 #get more information of post
@@ -71,7 +56,7 @@ def get_meaningful_detail(site_info, post_raw_detail):
 	if (post_raw_detail['author'] > 0):
 		user_info = requests.get(site_info[1]+'users/'+str(post_raw_detail['author']), headers=const.REQUEST_HEADER);
 		user_json = user_info.json()
-		if (user_json['name'] != ''):
+		if (user_json is not None and 'name' in user_json):
 			data_row['author_name'] = user_json['name']
 	#get category name (the first one)
 	if (len(post_raw_detail['categories']) > 0):
