@@ -21,13 +21,13 @@ def get_thumbnail_url(site_info, post_raw_detail):
 		media_info = requests.get(post_raw_detail['_links']['wp:featuredmedia'][0]['href'], headers=const.REQUEST_HEADER)
 		media_json = media_info.json()
 		if (len(media_json['media_details']['sizes']) > 0):
-			if (media_json['media_details']['sizes']['medium']['source_url'] != ''):
+			if ('medium' in media_json['media_details']['sizes']):
 				return media_json['media_details']['sizes']['medium']['source_url']
-			elif (media_json['media_details']['sizes']['medium_large']['source_url'] != ''):
+			elif ('medium_large' in media_json['media_details']['sizes']):
 				return media_json['media_details']['sizes']['medium_large']['source_url']
-			elif (media_json['media_details']['sizes']['large']['source_url'] != ''):
+			elif ('large' in media_json['media_details']['sizes']):
 				return media_json['media_details']['sizes']['large']['source_url']
-			elif (media_json['media_details']['sizes']['full']['source_url'] != ''):
+			elif ('full' in media_json['media_details']['sizes']):
 				return media_json['media_details']['sizes']['full']['source_url']
 			elif (media_json['source_url'] != ''):
 				return media_json['source_url'] + site_info[4]
@@ -119,11 +119,16 @@ for post_detail in final_data:
 					#create relationship
 					insert_sql = ('INSERT INTO category_post (cat_id, post_id) VALUES (%(cat_id)s,%(post_id)s)')
 					rel_detail = {
-						'cat_id': cat_id,
+						'cat_id': cursor.lastrowid,	#latest category id in DB
 						'post_id': inserted_post_id
 					}
 					cursor.execute(insert_sql, rel_detail)
-					myConnection.commit()
+				else :
+					#category existed, increase post_num to 1
+					row = cursor.fetchone()
+					update_sql = 'UPDATE category SET post_num = post_num + 1 WHERE _id ='+str(row[0])
+					cursor.execute(update_sql, {})
+				myConnection.commit()
 	#update crawling time of site
 	update_sql = ('UPDATE site SET crawl_time=%s WHERE _id='+str(site_info[0]))
 	cursor.execute(update_sql, [str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))])
