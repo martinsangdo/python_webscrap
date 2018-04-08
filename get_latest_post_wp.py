@@ -96,16 +96,17 @@ for post_detail in final_data:
 		cursor.execute(insert_sql, post_detail)
 		myConnection.commit()
 		#get categories of each post, save to DB
+		saved_cat_id = 0
 		if (len(post_detail['categories']) > 0):
 			inserted_post_id = cursor.lastrowid
 			for cat_id in post_detail['categories']:
-				cat_info = requests.get(site_info[1]+'categories/'+str(cat_id), headers=const.REQUEST_HEADER);
-				cat_json = cat_info.json()
 				#check if category existed in DB
 				existed_sql = 'SELECT _id FROM category WHERE site_id='+str(site_info[0])+' AND site_cat_id='+str(cat_id)
 				cursor.execute(existed_sql)
 				if (cursor.rowcount == 0):
 					#not existed, insert new category
+					cat_info = requests.get(site_info[1]+'categories/'+str(cat_id), headers=const.REQUEST_HEADER);
+					cat_json = cat_info.json()
 					insert_sql = ('INSERT INTO category (name, slug, site_id, site_cat_id) '+
 						'VALUES (%(name)s,%(slug)s,%(site_id)s,%(site_cat_id)s)')
 					cat_detail = {
@@ -116,18 +117,21 @@ for post_detail in final_data:
 					}
 					cursor.execute(insert_sql, cat_detail)
 					myConnection.commit()
-					#create relationship
-					insert_sql = ('INSERT INTO category_post (cat_id, post_id) VALUES (%(cat_id)s,%(post_id)s)')
-					rel_detail = {
-						'cat_id': cursor.lastrowid,	#latest category id in DB
-						'post_id': inserted_post_id
-					}
-					cursor.execute(insert_sql, rel_detail)
+					saved_cat_id = cursor.lastrowid,	#latest category id in DB
 				else :
 					#category existed, increase post_num to 1
 					row = cursor.fetchone()
-					update_sql = 'UPDATE category SET post_num = post_num + 1 WHERE _id ='+str(row[0])
+					saved_cat_id = row[0]
+					update_sql = 'UPDATE category SET post_num = post_num + 1 WHERE _id ='+str(saved_cat_id)
 					cursor.execute(update_sql, {})
+					myConnection.commit()
+				#create relationship between category & new post
+				insert_sql = ('INSERT INTO category_post (cat_id, post_id) VALUES (%(cat_id)s,%(post_id)s)')
+				rel_detail = {
+					'cat_id': saved_cat_id,
+					'post_id': inserted_post_id
+				}
+				cursor.execute(insert_sql, rel_detail)
 				myConnection.commit()
 	#update crawling time of site
 	update_sql = ('UPDATE site SET crawl_time=%s WHERE _id='+str(site_info[0]))
