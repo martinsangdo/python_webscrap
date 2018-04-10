@@ -78,6 +78,7 @@ for post_raw_detail in json_data:
 
 #upsert post data to DB
 cursor = myConnection.cursor()
+new_post_num = 0
 for post_detail in final_data:
 	#check if the post existed in db
 	existed_sql = 'SELECT _id FROM block_content WHERE site_id='+str(site_info[0])+' AND original_post_id='+str(post_detail['original_post_id'])
@@ -95,6 +96,7 @@ for post_detail in final_data:
 			'VALUES (%(site_id)s,%(title)s,%(thumb_url)s,%(slug)s,%(time)s,%(author_name)s,%(excerpt)s,%(original_url)s,%(original_post_id)s)')
 		cursor.execute(insert_sql, post_detail)
 		myConnection.commit()
+		new_post_num += 1
 		#get categories of each post, save to DB
 		saved_cat_id = 0
 		if (len(post_detail['categories']) > 0):
@@ -107,8 +109,8 @@ for post_detail in final_data:
 					#not existed, insert new category
 					cat_info = requests.get(site_info[1]+'categories/'+str(cat_id), headers=const.REQUEST_HEADER);
 					cat_json = cat_info.json()
-					insert_sql = ('INSERT INTO category (name, slug, site_id, site_cat_id) '+
-						'VALUES (%(name)s,%(slug)s,%(site_id)s,%(site_cat_id)s)')
+					insert_sql = ('INSERT INTO category (name, slug, site_id, site_cat_id, post_num) '+
+						'VALUES (%(name)s,%(slug)s,%(site_id)s,%(site_cat_id)s,1)')
 					cat_detail = {
 						'name': cat_json['name'],
 						'slug': cat_json['slug'],
@@ -134,7 +136,7 @@ for post_detail in final_data:
 				cursor.execute(insert_sql, rel_detail)
 				myConnection.commit()
 	#update crawling time of site
-	update_sql = ('UPDATE site SET crawl_time=%s WHERE _id='+str(site_info[0]))
+	update_sql = ('UPDATE site SET crawl_time=%s,post_num=post_num+'+str(new_post_num)+' WHERE _id='+str(site_info[0]))
 	cursor.execute(update_sql, [str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))])
 	myConnection.commit()
 	# print(cursor._last_executed)
