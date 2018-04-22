@@ -20,7 +20,7 @@ def get_thumbnail_url(site_info, post_raw_detail, scraper):
 	if (post_raw_detail['_links']['wp:featuredmedia'][0] is not None and post_raw_detail['_links']['wp:featuredmedia'][0]['href'] != ''):
 		#there is one attached media
 		media_info = scraper.get(post_raw_detail['_links']['wp:featuredmedia'][0]['href']).content
-		media_json = json.loads(media_info);
+		media_json = json.loads(media_info.decode("utf-8"));
 		if (len(media_json['media_details']['sizes']) > 0):
 			if ('medium' in media_json['media_details']['sizes']):
 				return media_json['media_details']['sizes']['medium']['source_url']
@@ -55,7 +55,7 @@ def get_meaningful_detail(site_info, post_raw_detail, scraper):
 	#get author name
 	if (post_raw_detail['author'] > 0):
 		user_info = scraper.get(site_info[1]+'users/'+str(post_raw_detail['author'])).content;
-		user_json = json.loads(user_info);
+		user_json = json.loads(user_info.decode("utf-8"));
 		if (user_json is not None and 'name' in user_json):
 			data_row['author_name'] = user_json['name']
 	return data_row;
@@ -72,7 +72,7 @@ api_url = site_info[1]+site_info[2]+'&per_page='+str(site_info[3])
 # print api_url
 scraper = cfscrape.create_scraper()  # returns a CloudflareScraper instance
 json_data = scraper.get(api_url).content
-json_data = json.loads(json_data)
+json_data = json.loads(json_data.decode("utf-8"))
 # print data
 #parse data
 # json_data = data.json()
@@ -112,7 +112,7 @@ for post_detail in final_data:
 				if (cursor.rowcount == 0):
 					#not existed, insert new category
 					cat_info = scraper.get(site_info[1]+'categories/'+str(cat_id)).content;
-					cat_json = json.loads(cat_info);
+					cat_json = json.loads(cat_info.decode("utf-8"));
 					insert_sql = ('INSERT INTO category (name, slug, site_id, site_cat_id, post_num) '+
 						'VALUES (%(name)s,%(slug)s,%(site_id)s,%(site_cat_id)s,1)')
 					cat_detail = {
