@@ -46,6 +46,7 @@ def get_meaningful_detail(site_info, post_raw_detail, scraper):
 		'time': post_raw_detail['date'],
 		'author_name': '',
 		'excerpt': post_raw_detail['excerpt']['rendered'],
+		'content': post_raw_detail['content']['rendered'],
 		'original_post_id': post_raw_detail['id'],
 		'original_url': post_raw_detail['link'],
 		'categories': post_raw_detail['categories']		#this one not exist in DB
@@ -89,15 +90,15 @@ for post_detail in final_data:
 	cursor.execute(existed_sql)
 	if (cursor.rowcount > 0):
 		#existed, update to DB
-		update_sql = ('UPDATE block_content SET title=%s,thumb_url=%s,slug=%s,time=%s,author_name=%s,excerpt=%s,original_url=%s '+
+		update_sql = ('UPDATE block_content SET title=%s,thumb_url=%s,slug=%s,time=%s,author_name=%s,excerpt=%s,content=%s,original_url=%s '+
 			'WHERE site_id='+str(site_info[0])+' AND original_post_id='+str(post_detail['original_post_id']))
 		cursor.execute(update_sql, (post_detail['title'], post_detail['thumb_url'], post_detail['slug'], post_detail['time'],
-				post_detail['author_name'], post_detail['excerpt'], post_detail['original_url']))
+				post_detail['author_name'], post_detail['excerpt'], post_detail['content'], post_detail['original_url']))
 		myConnection.commit()
 	else:
 		#insert new one
-		insert_sql = ('INSERT INTO block_content (site_id,title,thumb_url,slug,time,author_name,excerpt,original_url,original_post_id) '+
-			'VALUES (%(site_id)s,%(title)s,%(thumb_url)s,%(slug)s,%(time)s,%(author_name)s,%(excerpt)s,%(original_url)s,%(original_post_id)s)')
+		insert_sql = ('INSERT INTO block_content (site_id,title,thumb_url,slug,time,author_name,excerpt,content,original_url,original_post_id) '+
+			'VALUES (%(site_id)s,%(title)s,%(thumb_url)s,%(slug)s,%(time)s,%(author_name)s,%(excerpt)s,%(content)s,%(original_url)s,%(original_post_id)s)')
 		cursor.execute(insert_sql, post_detail)
 		myConnection.commit()
 		new_post_num += 1
