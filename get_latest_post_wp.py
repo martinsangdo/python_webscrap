@@ -5,7 +5,9 @@ import const
 import MySQLdb
 import sys
 import datetime
-
+# https://github.com/Anorov/cloudflare-scrape
+import cfscrape
+import json
 
 def getSiteInfo(conn, site_id):
 	cur = conn.cursor()
@@ -20,19 +22,20 @@ def get_thumbnail_url(site_info, post_raw_detail):
 		#there is one attached media
 		media_info = requests.get(post_raw_detail['_links']['wp:featuredmedia'][0]['href'], headers=const.REQUEST_HEADER)
 		media_json = media_info.json()
-		if (len(media_json['media_details']['sizes']) > 0):
-			if ('medium' in media_json['media_details']['sizes']):
-				return media_json['media_details']['sizes']['medium']['source_url']
-			elif ('medium_large' in media_json['media_details']['sizes']):
-				return media_json['media_details']['sizes']['medium_large']['source_url']
-			elif ('large' in media_json['media_details']['sizes']):
-				return media_json['media_details']['sizes']['large']['source_url']
-			elif ('full' in media_json['media_details']['sizes']):
-				return media_json['media_details']['sizes']['full']['source_url']
+		if ('media_details' in media_json):
+			if (len(media_json['media_details']['sizes']) > 0):
+				if ('medium' in media_json['media_details']['sizes']):
+					return media_json['media_details']['sizes']['medium']['source_url']
+				elif ('medium_large' in media_json['media_details']['sizes']):
+					return media_json['media_details']['sizes']['medium_large']['source_url']
+				elif ('large' in media_json['media_details']['sizes']):
+					return media_json['media_details']['sizes']['large']['source_url']
+				elif ('full' in media_json['media_details']['sizes']):
+					return media_json['media_details']['sizes']['full']['source_url']
+				elif (media_json['source_url'] != ''):
+					return media_json['source_url'] + site_info[4]
 			elif (media_json['source_url'] != ''):
 				return media_json['source_url'] + site_info[4]
-		elif (media_json['source_url'] != ''):
-			return media_json['source_url'] + site_info[4]
 		return '';
 #end get_thumbnail_url
 #get more information of post
@@ -45,7 +48,7 @@ def get_meaningful_detail(site_info, post_raw_detail):
 		'time': post_raw_detail['date'],
 		'author_name': '',
 		'excerpt': post_raw_detail['excerpt']['rendered'],
-		'content': post_raw_detail['content']['rendered'],
+		'content': post_raw_detail['content']['rendered'].strip(),
 		'original_post_id': post_raw_detail['id'],
 		'original_url': post_raw_detail['link'],
 		'categories': post_raw_detail['categories']		#this one not exist in DB
@@ -69,9 +72,11 @@ myConnection = MySQLdb.connect(host=const.HOSTNAME, user=const.USERNAME, passwd=
 site_info = getSiteInfo( myConnection, site_id )
 api_url = site_info[1]+site_info[2]+'&per_page='+str(site_info[3])
 # print api_url
-data = requests.get(api_url, headers=const.REQUEST_HEADER)
+# data = requests.get(api_url, headers=const.REQUEST_HEADER)
 #parse data
-json_data = data.json()
+scraper = cfscrape.create_scraper()  # returns a CloudflareScraper instance
+json_data = scraper.get(api_url).content
+json_data = json.loads(json_data.decode("utf-8"))
 # print json_data
 final_data = []
 for post_raw_detail in json_data:
