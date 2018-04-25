@@ -20,20 +20,21 @@ def get_thumbnail_url(site_info, post_raw_detail, scraper):
 	if (post_raw_detail['_links']['wp:featuredmedia'][0] is not None and post_raw_detail['_links']['wp:featuredmedia'][0]['href'] != ''):
 		#there is one attached media
 		media_info = scraper.get(post_raw_detail['_links']['wp:featuredmedia'][0]['href']).content
-		media_json = json.loads(media_info.decode("utf-8"));
-		if (len(media_json['media_details']['sizes']) > 0):
-			if ('medium' in media_json['media_details']['sizes']):
-				return media_json['media_details']['sizes']['medium']['source_url']
-			elif ('medium_large' in media_json['media_details']['sizes']):
-				return media_json['media_details']['sizes']['medium_large']['source_url']
-			elif ('large' in media_json['media_details']['sizes']):
-				return media_json['media_details']['sizes']['large']['source_url']
-			elif ('full' in media_json['media_details']['sizes']):
-				return media_json['media_details']['sizes']['full']['source_url']
+		media_json = json.loads(media_info.decode("utf-8"))
+		if ('media_details' in media_json):
+			if (len(media_json['media_details']['sizes']) > 0):
+				if ('medium_large' in media_json['media_details']['sizes']):
+					return media_json['media_details']['sizes']['medium_large']['source_url']
+				elif ('large' in media_json['media_details']['sizes']):
+					return media_json['media_details']['sizes']['large']['source_url']
+				elif ('medium' in media_json['media_details']['sizes']):
+					return media_json['media_details']['sizes']['medium']['source_url']
+				elif ('full' in media_json['media_details']['sizes']):
+					return media_json['media_details']['sizes']['full']['source_url']
+				elif (media_json['source_url'] != ''):
+					return media_json['source_url'] + site_info[4]
 			elif (media_json['source_url'] != ''):
 				return media_json['source_url'] + site_info[4]
-		elif (media_json['source_url'] != ''):
-			return media_json['source_url'] + site_info[4]
 		return '';
 #end get_thumbnail_url
 #get more information of post
@@ -61,6 +62,7 @@ def get_meaningful_detail(site_info, post_raw_detail, scraper):
 			data_row['author_name'] = user_json['name']
 	return data_row;
 
+# print ('------start-----------')
 if (len(sys.argv) == 1):	#empty parameter
 	sys.exit()
 #get site id
@@ -68,9 +70,9 @@ site_id = sys.argv[1]
 # print site_id
 myConnection = MySQLdb.connect(host=const.HOSTNAME, user=const.USERNAME, passwd=const.PASSWORD, db=const.DATABASE, use_unicode=True, charset="utf8")
 site_info = getSiteInfo( myConnection, site_id )
-# print site_info
+# print (site_info)
 api_url = site_info[1]+site_info[2]+'&per_page='+str(site_info[3])
-# print api_url
+# print (api_url)
 scraper = cfscrape.create_scraper()  # returns a CloudflareScraper instance
 json_data = scraper.get(api_url).content
 json_data = json.loads(json_data.decode("utf-8"))
@@ -95,12 +97,14 @@ for post_detail in final_data:
 		cursor.execute(update_sql, (post_detail['title'], post_detail['thumb_url'], post_detail['slug'], post_detail['time'],
 				post_detail['author_name'], post_detail['excerpt'], post_detail['content'], post_detail['original_url']))
 		myConnection.commit()
+		# print ('updated: '+post_detail['title'])
 	else:
 		#insert new one
 		insert_sql = ('INSERT INTO block_content (site_id,title,thumb_url,slug,time,author_name,excerpt,content,original_url,original_post_id) '+
 			'VALUES (%(site_id)s,%(title)s,%(thumb_url)s,%(slug)s,%(time)s,%(author_name)s,%(excerpt)s,%(content)s,%(original_url)s,%(original_post_id)s)')
 		cursor.execute(insert_sql, post_detail)
 		myConnection.commit()
+		# print ('inserted: '+post_detail['title'])
 		new_post_num += 1
 		#get categories of each post, save to DB
 		saved_cat_id = 0
@@ -140,10 +144,10 @@ for post_detail in final_data:
 				}
 				cursor.execute(insert_sql, rel_detail)
 				myConnection.commit()
-	#update crawling time of site
-	update_sql = ('UPDATE site SET crawl_time=%s,post_num=post_num+'+str(new_post_num)+' WHERE _id='+str(site_info[0]))
-	cursor.execute(update_sql, [str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))])
-	myConnection.commit()
-	# print(cursor._last_executed)
+#update crawling time of site
+update_sql = ('UPDATE site SET crawl_time=%s,post_num=post_num+'+str(new_post_num)+' WHERE _id='+str(site_info[0]))
+cursor.execute(update_sql, [str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))])
+myConnection.commit()
+# print(cursor._last_executed)
 
 myConnection.close()

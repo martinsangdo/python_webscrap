@@ -24,12 +24,12 @@ def get_thumbnail_url(site_info, post_raw_detail):
 		media_json = media_info.json()
 		if ('media_details' in media_json):
 			if (len(media_json['media_details']['sizes']) > 0):
-				if ('medium' in media_json['media_details']['sizes']):
-					return media_json['media_details']['sizes']['medium']['source_url']
-				elif ('medium_large' in media_json['media_details']['sizes']):
+				if ('medium_large' in media_json['media_details']['sizes']):
 					return media_json['media_details']['sizes']['medium_large']['source_url']
 				elif ('large' in media_json['media_details']['sizes']):
 					return media_json['media_details']['sizes']['large']['source_url']
+				elif ('medium' in media_json['media_details']['sizes']):
+					return media_json['media_details']['sizes']['medium']['source_url']
 				elif ('full' in media_json['media_details']['sizes']):
 					return media_json['media_details']['sizes']['full']['source_url']
 				elif (media_json['source_url'] != ''):
@@ -141,10 +141,10 @@ for post_detail in final_data:
 				}
 				cursor.execute(insert_sql, rel_detail)
 				myConnection.commit()
-	#update crawling time of site
-	update_sql = ('UPDATE site SET crawl_time=%s,post_num=post_num+'+str(new_post_num)+' WHERE _id='+str(site_info[0]))
-	cursor.execute(update_sql, [str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))])
-	myConnection.commit()
-	# print(cursor._last_executed)
+#update crawling time of site
+update_sql = ('UPDATE site SET crawl_time=%s,post_num=post_num+'+str(new_post_num)+' WHERE _id='+str(site_info[0]))
+cursor.execute(update_sql, [str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))])
+myConnection.commit()
+# print(cursor._last_executed)
 
 myConnection.close()
