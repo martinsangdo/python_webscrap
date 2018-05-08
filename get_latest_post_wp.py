@@ -89,7 +89,7 @@ cursor = myConnection.cursor()
 new_post_num = 0
 for post_detail in final_data:
 	#check if the post existed in db
-	existed_sql = 'SELECT _id FROM block_content WHERE slug='+str(post_detail['slug'])+' AND original_post_id='+str(post_detail['original_post_id'])
+	existed_sql = 'SELECT _id FROM block_content WHERE slug="'+str(post_detail['slug'])+'" AND original_post_id='+str(post_detail['original_post_id'])
 	cursor.execute(existed_sql)
 	if (cursor.rowcount > 0):
 		#existed, update to DB
