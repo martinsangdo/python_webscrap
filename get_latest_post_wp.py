@@ -36,7 +36,9 @@ def get_thumbnail_url(site_info, post_raw_detail):
 					return media_json['source_url'] + site_info[4]
 			elif (media_json['source_url'] != ''):
 				return media_json['source_url'] + site_info[4]
-		return '';
+		return '/public/blockbod/img/sample_cover/c1.jpg'	#default
+	else :
+		return '/public/blockbod/img/sample_cover/c1.jpg'	#default
 #end get_thumbnail_url
 #get more information of post
 def get_meaningful_detail(site_info, post_raw_detail):
@@ -57,11 +59,11 @@ def get_meaningful_detail(site_info, post_raw_detail):
 	data_row['thumb_url'] = get_thumbnail_url(site_info, post_raw_detail)
 	#get author name
 	if (post_raw_detail['author'] > 0):
-		user_info = requests.get(site_info[1]+'users/'+str(post_raw_detail['author']), headers=const.REQUEST_HEADER);
+		user_info = requests.get(site_info[1]+'users/'+str(post_raw_detail['author']), headers=const.REQUEST_HEADER)
 		user_json = user_info.json()
 		if (user_json is not None and 'name' in user_json):
 			data_row['author_name'] = user_json['name']
-	return data_row;
+	return data_row
 
 if (len(sys.argv) == 1):	#empty parameter
 	sys.exit()
@@ -87,7 +89,7 @@ cursor = myConnection.cursor()
 new_post_num = 0
 for post_detail in final_data:
 	#check if the post existed in db
-	existed_sql = 'SELECT _id FROM block_content WHERE site_id='+str(site_info[0])+' AND original_post_id='+str(post_detail['original_post_id'])
+	existed_sql = 'SELECT _id FROM block_content WHERE slug='+str(post_detail['slug'])+' AND original_post_id='+str(post_detail['original_post_id'])
 	cursor.execute(existed_sql)
 	if (cursor.rowcount > 0):
 		#existed, update to DB
@@ -113,7 +115,7 @@ for post_detail in final_data:
 				cursor.execute(existed_sql)
 				if (cursor.rowcount == 0):
 					#not existed, insert new category
-					cat_info = requests.get(site_info[1]+'categories/'+str(cat_id), headers=const.REQUEST_HEADER);
+					cat_info = requests.get(site_info[1]+'categories/'+str(cat_id), headers=const.REQUEST_HEADER)
 					cat_json = cat_info.json()
 					insert_sql = ('INSERT INTO category (name, slug, site_id, site_cat_id, post_num) '+
 						'VALUES (%(name)s,%(slug)s,%(site_id)s,%(site_cat_id)s,1)')
