@@ -9,17 +9,21 @@ import time
 # page = requests.get('https://www.eurogamer.net/archive/news', headers={'User-Agent': 'Mozilla/5.0'})
 page = ''
 while page == '':
-    try:
-        page = requests.get('https://www.eurogamer.net/archive/news', headers={'User-Agent': 'Mozilla/5.0'})
-        break
-    except:
-        time.sleep(5)
-        print 'wake up'
-        continue
+	try:
+		# page = requests.get('https://www.ddengle.com/traders_realtime', headers={'User-Agent': 'Mozilla/5.0'})
+		# page = requests.get('https://coinpan.com/free', headers={'User-Agent': 'Mozilla/5.0'})
+		# page = requests.get('https://www.coindeskkorea.com/news/', headers={'User-Agent': 'Mozilla/5.0'})
+		# page = requests.get('http://www.blockchainnews.co.kr/news/', headers={'User-Agent': 'Mozilla/5.0'})
+		page = requests.get('http://kr.cointime.com/lives', headers={'User-Agent': 'Mozilla/5.0'})
+		break
+	except:
+		time.sleep(5)
+		print 'wake up'
+		continue
 # print page.content
 tree = html.fromstring(page.content)
 
-tags = tree.xpath('//h2[@class="title"]')
+tags = tree.xpath('//div[@class="live-info"]')
 #     app = tree.xpath("//div[@class='column first']/ul/li/a/@href")
 
 # src = [tag.attrib['data-settings'] for tag in tree.xpath('//li[@class="video-embed-content-v6"]')]
@@ -36,7 +40,7 @@ for tag in tags:
 # This is probably because of mod_security or some similar server security feature which blocks known spider/bot user agents (urllib uses something like python urllib/3.3.0, it's easily detected). Try setting a known browser user agent with:
 
 # from urllib.request import Request, urlopen
-# 
+#
 # req = Request('http://www.ign.com/videos', headers={'User-Agent': 'Mozilla/5.0'})
 # webpage = urlopen(req).read()
 # print webpage.content
