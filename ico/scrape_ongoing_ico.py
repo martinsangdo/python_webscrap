@@ -26,7 +26,7 @@ for tag in containers:
 		#get title
 		'title' : tag.find('.//h4').text_content(),
 		#get sub title
-		'minor_title' : tag.find('.//div[@class="end-date _20px-left w-hidden-small w-hidden-tiny"]').text_content() + tag.find('.//div[@class="end-date w-hidden-small w-hidden-tiny"]').text_content(),
+		'minor_title' : tag.find('.//div[@class="end-date _20px-left w-hidden-small w-hidden-tiny"]').text_content() + ' ' + tag.find('.//div[@class="end-date w-hidden-small w-hidden-tiny"]').text_content(),
 		#get description
 		'excerpt' : tag.find('.//p[@class="paragraph-61"]').text_content().encode("utf-8"),
 		#get link
