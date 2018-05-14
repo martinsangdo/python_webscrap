@@ -7,8 +7,8 @@ import requests
 import time
 import MySQLdb
 
-source_url = 'https://topicolist.com/pre-icos'
-type = 'pre_ico'
+source_url = 'https://topicolist.com/ongoing-icos'
+type = 'ongoing_ico'
 page = requests.get(source_url, headers=const.REQUEST_HEADER)
 # print page.content
 tree = html.fromstring(page.content)
