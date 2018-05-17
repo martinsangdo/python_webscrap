@@ -1,4 +1,5 @@
 #http://lxml.de/lxmlhtml.html
+#author: Martin SangDo
 from lxml import html
 
 import const
@@ -36,11 +37,11 @@ for tag in containers:
 	if ('src' in tag.find('.//img[@property="image"]').attrib):
 		detail['thumb_url'] = tag.find('.//img[@property="image"]').attrib['src']
 	#check if the event existed in db
-	existed_sql = 'SELECT _id FROM event WHERE title="'+str(detail['title'])+'" AND original_url="'+str(detail['original_url'])+'"'
+	existed_sql = 'SELECT _id FROM ico WHERE title="'+str(detail['title'])+'" AND original_url="'+str(detail['original_url'])+'"'
 	cursor.execute(existed_sql)
 	if (cursor.rowcount == 0):
 		#not existed, insert to DB
-		insert_sql = ('INSERT INTO event (title,thumb_url,type,excerpt,original_url,minor_title) '+
+		insert_sql = ('INSERT INTO ico (title,thumb_url,type,excerpt,original_url,minor_title) '+
 			'VALUES (%(title)s,%(thumb_url)s,%(type)s,%(excerpt)s,%(original_url)s,%(minor_title)s)')
 		cursor.execute(insert_sql, detail)
 		myConnection.commit()
