@@ -24,8 +24,8 @@ def getICODetail(ico_id, ico_url):
 		ico_detail['minor_content'] = ''.join([html.tostring(child) for child in tag.iterdescendants()])
 	return ico_detail
 #main process
-source_url = 'https://topicolist.com/pre-icos'
-type = 'pre_ico'
+source_url = 'https://topicolist.com/ongoing-icos'
+type = 'ongoing_ico'
 page = requests.get(source_url, headers=const.REQUEST_HEADER)
 # print page.content
 tree = html.fromstring(page.content)

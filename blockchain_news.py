@@ -65,7 +65,7 @@ def get_meaningful_detail(site_info, post_raw_detail, scraper):
 	return data_row
 
 # print ('------start-----------')
-if (len(sys.argv) == 1):	#empty parameter
+if (len(sys.argv) == 1):	#empty parameter (site id)
 	sys.exit()
 #get site id
 site_id = sys.argv[1]
