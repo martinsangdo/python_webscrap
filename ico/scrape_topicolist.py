@@ -9,27 +9,29 @@ import MySQLdb
 import sys
 import cfscrape
 import datetime
+import AdvancedHTMLParser		#https://pypi.org/project/AdvancedHTMLParser/6.2.4/
 
 def getLinkInfo(cursor, link_id):
 	sql = 'SELECT url,type FROM ico_link WHERE status=1 AND _id='+link_id
 	cursor.execute(sql)
 	return cursor.fetchone()
 
-def getICODetail(ico_url):
+def getICODetail(parser, ico_url):
 	page = requests.get(ico_url, headers=const.REQUEST_HEADER)
-	tree = html.fromstring(page.content)
+	parser.parseStr(page.content)
+
 	ico_detail = {
 		'main_content': '',
 		'minor_content': ''
 	}
 	#get main content
-	main_content = tree.findall('.//main[@class="ico-left-column"]')
+	main_content = parser.getElementsByClassName('ico-left-column')
 	for tag in main_content:
-		ico_detail['main_content'] = ''.join([html.tostring(child) for child in tag.iterdescendants()])
+		ico_detail['main_content'] = tag.innerHTML
 	#get minor content (review)
-	minor_content = tree.findall('.//aside[@class="ico-sidebar div-block-36"]')
+	minor_content = parser.getElementsByClassName('ico-sidebar')
 	for tag in minor_content:
-		ico_detail['minor_content'] = ''.join([html.tostring(child) for child in tag.iterdescendants()])
+		ico_detail['minor_content'] = tag.innerHTML
 	return ico_detail
 
 if (len(sys.argv) == 1):	#empty parameter (ico list/link id)
@@ -37,7 +39,7 @@ if (len(sys.argv) == 1):	#empty parameter (ico list/link id)
 #get ico link id
 link_id = sys.argv[1]
 root_url = 'https://topicolist.com'
-
+parser = AdvancedHTMLParser.AdvancedHTMLParser()
 myConnection = MySQLdb.connect(host=const.HOSTNAME, user=const.USERNAME, passwd=const.PASSWORD, db=const.DATABASE, use_unicode=True, charset="utf8")
 cursor = myConnection.cursor()
 
@@ -70,7 +72,7 @@ for container in ico_containers:
 	if ('src' in container.find('.//img[@property="image"]').attrib):
 		detail['thumb_url'] = container.find('.//img[@property="image"]').attrib['src']
 	#get detail of ICO
-	ico_detail = getICODetail(root_url + container.find('.//a[@property="url"]').attrib['href'])
+	ico_detail = getICODetail(parser, root_url + container.find('.//a[@property="url"]').attrib['href'])
 	detail['main_content'] = ico_detail['main_content']
 	detail['minor_content'] = ico_detail['minor_content']
 	#check if the event existed in db
