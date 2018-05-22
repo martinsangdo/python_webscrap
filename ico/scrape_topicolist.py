@@ -56,6 +56,7 @@ new_post_num = 0
 
 for container in ico_containers:
 	detail = {	#ICO detail
+		'thumb_url': '',
 		#get title
 		'title' : container.find('.//h4').text_content(),
 		#get sub title

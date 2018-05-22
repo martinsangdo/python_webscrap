@@ -12,7 +12,7 @@ PASSWORD = 'root'
 DATABASE = 'blockbod_db'
 
 #gamereviewnews
-# HOSTNAME = '166.62.27.173'
-# USERNAME = 'game_review_user'
-# PASSWORD = 'R8mbU,V(L~KK'
-# DATABASE = 'game_review_news'
+# HOSTNAME = 'localhost'
+# USERNAME = 'blockbod_user'
+# PASSWORD = 'zpI_aIQ-CI+}'
+# DATABASE = 'blockbod_db'
