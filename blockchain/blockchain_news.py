@@ -52,7 +52,8 @@ def get_meaningful_detail(site_info, post_raw_detail, scraper):
 		'content': post_raw_detail['content']['rendered'],
 		'original_post_id': post_raw_detail['id'],
 		'original_url': post_raw_detail['link'],
-		'categories': post_raw_detail['categories']		#this one not exist in DB
+		'categories': post_raw_detail['categories'],		#this one not exist in DB
+		'is_top_coin_news': 0
 	}
 	#get thumbnail url
 	data_row['thumb_url'] = get_thumbnail_url(site_info, post_raw_detail, scraper)
@@ -116,9 +117,19 @@ for post_detail in final_data:
 		myConnection.commit()
 		# print ('updated: '+post_detail['title'])
 	else:
+		#check if this post have some info of top coin list
+		#1. search in title
+		in_title = re.search(coin_names_str, post_detail['title'])
+		#2. search in excerpt
+		in_excerpt = re.search(coin_names_str, post_detail['excerpt'])
+		#3. search in content
+		in_content = re.search(coin_names_str, post_detail['content'])
+		#confirm it
+		if ((in_title is not None) or (in_excerpt is not None) or (in_content is not None)):
+			post_detail['is_top_coin_news'] = 1
 		#insert new one
-		insert_sql = ('INSERT INTO block_content (site_id,title,thumb_url,slug,time,author_name,excerpt,content,original_url,original_post_id) '+
-			'VALUES (%(site_id)s,%(title)s,%(thumb_url)s,%(slug)s,%(time)s,%(author_name)s,%(excerpt)s,%(content)s,%(original_url)s,%(original_post_id)s)')
+		insert_sql = ('INSERT INTO block_content (site_id,title,thumb_url,slug,time,author_name,excerpt,content,original_url,original_post_id,is_top_coin_news) '+
+			'VALUES (%(site_id)s,%(title)s,%(thumb_url)s,%(slug)s,%(time)s,%(author_name)s,%(excerpt)s,%(content)s,%(original_url)s,%(original_post_id)s,%(is_top_coin_news)s)')
 		cursor.execute(insert_sql, post_detail)
 		myConnection.commit()
 		# print ('inserted: '+post_detail['title'])
@@ -161,23 +172,6 @@ for post_detail in final_data:
 				}
 				cursor.execute(insert_sql, rel_detail)
 				myConnection.commit()
-		#check if this post have some info of top coin list
-		#1. search in title
-		in_title = re.search(coin_names_str, post_detail['title'])
-		#2. search in excerpt
-		in_excerpt = re.search(coin_names_str, post_detail['excerpt'])
-		#3. search in content
-		in_content = re.search(coin_names_str, post_detail['content'])
-		#confirm it
-		if ((in_title is not None) or (in_excerpt is not None) or (in_content is not None)):
-			#found (this post relates with top coin news), insert it to correct category
-			insert_sql = ('INSERT INTO category_post (cat_id, post_id) VALUES (%(cat_id)s,%(post_id)s)')
-			rel_detail = {
-				'cat_id': const.TOP_COIN_NEWS_CAT_ID,
-				'post_id': inserted_post_id
-			}
-			cursor.execute(insert_sql, rel_detail)
-			myConnection.commit()
 #update crawling time of site
 update_sql = ('UPDATE site SET crawl_time=%s,post_num=post_num+'+str(new_post_num)+' WHERE _id='+str(site_info[0]))
 cursor.execute(update_sql, [str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))])
