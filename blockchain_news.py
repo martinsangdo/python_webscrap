@@ -7,9 +7,9 @@ import datetime
 # https://github.com/Anorov/cloudflare-scrape
 import cfscrape
 import json
+import re
 
-def getSiteInfo(conn, site_id):
-	cur = conn.cursor()
+def getSiteInfo(cur, site_id):
 	sql = 'SELECT _id,api_uri,post_uri,item_num,thumb_url_param FROM site WHERE status=1 AND _id='+site_id
 	cur.execute(sql)
 	row = cur.fetchone()
@@ -63,6 +63,19 @@ def get_meaningful_detail(site_info, post_raw_detail, scraper):
 		if (user_json is not None and 'name' in user_json):
 			data_row['author_name'] = user_json['name']
 	return data_row
+#get list of top coins
+def get_top_coins (cursor):
+	top_coin_names_sql = 'SELECT name FROM coin_list ORDER BY rank LIMIT 0,50'
+	cursor.execute(top_coin_names_sql)
+	names = []
+	if (cursor.rowcount > 0):
+		result = cursor.fetchall()
+		for row in result:
+	  		names.append(str(row[0]))
+	  		#join names into 1 string
+		return '|'.join(map(str, names))
+	else:
+		return ''
 
 # print ('------start-----------')
 if (len(sys.argv) == 1):	#empty parameter (site id)
@@ -71,7 +84,9 @@ if (len(sys.argv) == 1):	#empty parameter (site id)
 site_id = sys.argv[1]
 # print site_id
 myConnection = MySQLdb.connect(host=const.HOSTNAME, user=const.USERNAME, passwd=const.PASSWORD, db=const.DATABASE, use_unicode=True, charset="utf8")
-site_info = getSiteInfo( myConnection, site_id )
+cursor = myConnection.cursor()
+
+site_info = getSiteInfo( cursor, site_id )
 # print (site_info)
 api_url = site_info[1]+site_info[2]+'&per_page='+str(site_info[3])
 # print (api_url)
@@ -84,9 +99,9 @@ json_data = json.loads(json_data.decode("utf-8"))
 final_data = []
 for post_raw_detail in json_data:
 	final_data.append(get_meaningful_detail(site_info, post_raw_detail, scraper))
-
-#upsert post data to DB
-cursor = myConnection.cursor()
+#search name of top coins so that we can arrange post to that group
+coin_names_str = get_top_coins(cursor)
+#begin upsert post data to DB
 new_post_num = 0
 for post_detail in final_data:
 	#check if the post existed in db
@@ -110,8 +125,8 @@ for post_detail in final_data:
 		new_post_num += 1
 		#get categories of each post, save to DB
 		saved_cat_id = 0
+		inserted_post_id = cursor.lastrowid		#created post id
 		if (len(post_detail['categories']) > 0):
-			inserted_post_id = cursor.lastrowid
 			for cat_id in post_detail['categories']:
 				#check if category existed in DB
 				existed_sql = 'SELECT _id FROM category WHERE site_id='+str(site_info[0])+' AND site_cat_id='+str(cat_id)
@@ -146,6 +161,23 @@ for post_detail in final_data:
 				}
 				cursor.execute(insert_sql, rel_detail)
 				myConnection.commit()
+		#check if this post have some info of top coin list
+		#1. search in title
+		in_title = re.search(coin_names_str, post_detail['title'])
+		#2. search in excerpt
+		in_excerpt = re.search(coin_names_str, post_detail['excerpt'])
+		#3. search in content
+		in_content = re.search(coin_names_str, post_detail['content'])
+		#confirm it
+		if ((in_title is not None) or (in_excerpt is not None) or (in_content is not None)):
+			#found (this post relates with top coin news), insert it to correct category
+			insert_sql = ('INSERT INTO category_post (cat_id, post_id) VALUES (%(cat_id)s,%(post_id)s)')
+			rel_detail = {
+				'cat_id': const.TOP_COIN_NEWS_CAT_ID,
+				'post_id': inserted_post_id
+			}
+			cursor.execute(insert_sql, rel_detail)
+			myConnection.commit()
 #update crawling time of site
 update_sql = ('UPDATE site SET crawl_time=%s,post_num=post_num+'+str(new_post_num)+' WHERE _id='+str(site_info[0]))
 cursor.execute(update_sql, [str(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))])
