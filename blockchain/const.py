@@ -5,17 +5,15 @@ PER_PAGE='10'
 API_KEY = 'AIzaSyBvJB-LtVDeazbYIEzukQfaqIboAp7wM68'
 REQUEST_HEADER = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.0; WOW64; rv:24.0) Gecko/20100101 Firefox/24.0'}
 #database
-# ln -s /Applications/MAMP/tmp/mysql/mysql.sock /tmp/mysql.sock
+# HOSTNAME = 'localhost'
+# USERNAME = 'root'
+# PASSWORD = 'root'
+# DATABASE = 'blockbod_db'
+
+#blockbod_db
 HOSTNAME = 'localhost'
-USERNAME = 'root'
-PASSWORD = 'root'
-#DATABASE = 'game_review_news'
+USERNAME = 'blockbod_user'
+PASSWORD = 'zpI_aIQ-CI+}'
 DATABASE = 'blockbod_db'
 
-#gamereviewnews
-# HOSTNAME = '166.62.27.173'
-# USERNAME = 'game_review_user'
-# PASSWORD = 'R8mbU,V(L~KK'
-# DATABASE = 'game_review_news'
-
-TOP_COIN_NEWS_CAT_ID = 615
+TOP_COIN_NEWS_CAT_ID = 742
