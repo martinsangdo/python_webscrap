@@ -6,6 +6,9 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
+
+
+
 # me == my email address
 # you == recipient's email address
 me = "no-reply@blockbod.com"
@@ -123,7 +126,7 @@ msg.attach(part2)
 
 # Send the message via local SMTP server.
 s = smtplib.SMTP('smtp.1and1.com', 25)
-s.login('payment@blockbod.com', 'Block!234')
+s.login('no-reply@blockbod.com', 'Block!234')
 # sendmail function takes 3 arguments: sender's address, recipient's address
 # and message to send - here it is sent as one string.
 s.sendmail(me, you, msg.as_string())
