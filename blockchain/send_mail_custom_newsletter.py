@@ -6,6 +6,9 @@ import smtplib
 import const
 import mail_const
 import MySQLdb
+import sys
+reload(sys)
+sys.setdefaultencoding('utf8')
 
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -91,7 +94,7 @@ def sendMailBatch(cursor, myConnection, mail_contents):
 	s.login(mail_const.NEWS_MAIL_FROM, mail_const.NEWS_MAIL_FROM_PASSWORD)
 	#put mail content here
 	for email in mail_contents:
-		part2 = MIMEText(mail_contents[email].encode("utf-8"), 'html', 'UTF-8')
+		part2 = MIMEText(replaceUnicode(mail_contents[email]), 'html', 'UTF-8')
 		msg.attach(part2)
 		s.sendmail(mail_const.NEWS_MAIL_FROM, email, msg.as_string())
 		#update send mail time
@@ -99,6 +102,8 @@ def sendMailBatch(cursor, myConnection, mail_contents):
 		cursor.execute(update_sql, {})
 		myConnection.commit()
 	s.quit()
+def replaceUnicode(str):
+	return str.replace(u'\u201c', '"').replace(u'\u201d', '"').replace(u'\u2014', '-').replace(u'\u2018', '"').replace(u'\u2019', '"').decode('utf8').encode("utf-8")
 ########## BEGIN
 myConnection = MySQLdb.connect(host=const.HOSTNAME, user=const.USERNAME, passwd=const.PASSWORD, db=const.DATABASE, use_unicode=True, charset="utf8")
 cursor = myConnection.cursor()
@@ -118,8 +123,8 @@ if (len(sent_newsletters) > 0):
 				item_html = item_html.replace('%thumb_url%', one_article[1])
 				item_html = item_html.replace('%title%', one_article[3])
 				#remove unwanted link
-				clean_excerpt = str(one_article[4]).replace('<a ', '<a style="display: none !important;" ')
-				item_html = item_html.replace('%excerpt%', clean_excerpt)
+				clean_excerpt = replaceUnicode(one_article[4]).replace('<a ', '<a style="display:none !important;" ')
+				item_html = replaceUnicode(item_html).replace('%excerpt%', clean_excerpt)
 				html_items.append(item_html);
 			mails_html[newsletter[1]] = mail_const.CUSTOM_NEWS_HTML_PREFIX + ''.join(html_items) + mail_const.CUSTOM_NEWS_HTML_POSTFIX
 			#reset number of sending empty mail
