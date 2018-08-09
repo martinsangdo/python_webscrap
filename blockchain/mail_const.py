@@ -2,7 +2,7 @@
 PER_PAGE=10
 SMTP_HOSTNAME = 'smtp.1and1.com'
 SMTP_POST=25
-
+EMPTY_MAIL_WARNING_MAX_SEND_NUM = 3     #if number of continous sending empty mail, send warning to change request
 NEWS_LINK_PREFIX = 'http://blockbod.com/blockchain-news/'
 #newsletter
 NEWS_MAIL_FROM='no-reply@blockbod.com'
@@ -91,3 +91,7 @@ CUSTOM_NEWS_HTML_POSTFIX = """\
 </body>
 </html>
 """
+EMPTY_NEWS_MAIL = '<p>There is no relevant articles in last week.<p>'\
+    '<p>In case you wanna change your custom request, please drop an email to <a href="mailto:info@blockbod.com">info@blockbod.com</a></p>'
+EMPTY_WARNING_NEWS_MAIL = '<p>There is no relevant articles in recent weeks.<p>'\
+    '<p>You should change the custom request, please drop an email to <a href="mailto:info@blockbod.com">info@blockbod.com</a></p>'

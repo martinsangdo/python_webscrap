@@ -81,7 +81,7 @@ def getRelatedArticles(title_keywords,excerpt_keywords,content_keywords,article_
 			articles_2_send.append(one_article)
 	return articles_2_send
 #send bunch of mails
-def sendMailBatch(mail_contents):
+def sendMailBatch(cursor, myConnection, mail_contents):
 	#configure email
 	msg = MIMEMultipart('alternative')
 	msg['Subject'] = mail_const.CUSTOM_NEWS_SUBJECT
@@ -94,6 +94,10 @@ def sendMailBatch(mail_contents):
 		part2 = MIMEText(mail_contents[email].encode("utf-8"), 'html', 'UTF-8')
 		msg.attach(part2)
 		s.sendmail(mail_const.NEWS_MAIL_FROM, email, msg.as_string())
+		#update send mail time
+		update_sql = 'UPDATE newsletter_custom SET last_send_mail_time = NOW() WHERE email="'+email+'"'
+		cursor.execute(update_sql, {})
+		myConnection.commit()
 	s.quit()
 ########## BEGIN
 myConnection = MySQLdb.connect(host=const.HOSTNAME, user=const.USERNAME, passwd=const.PASSWORD, db=const.DATABASE, use_unicode=True, charset="utf8")
@@ -117,8 +121,21 @@ if (len(sent_newsletters) > 0):
 				clean_excerpt = str(one_article[4]).replace('<a ', '<a style="display: none !important;" ')
 				item_html = item_html.replace('%excerpt%', clean_excerpt)
 				html_items.append(item_html);
-				# print item_html
 			mails_html[newsletter[1]] = mail_const.CUSTOM_NEWS_HTML_PREFIX + ''.join(html_items) + mail_const.CUSTOM_NEWS_HTML_POSTFIX
-			# print mails_html[newsletter[1]]
+			#reset number of sending empty mail
+			update_sql = 'UPDATE newsletter_custom SET empty_data_send_num = 0 WHERE _id ='+str(newsletter[0])
+			cursor.execute(update_sql, {})
+			myConnection.commit()
+		else:	#has no articles to send
+			if (int(newsletter[5]) == mail_const.EMPTY_MAIL_WARNING_MAX_SEND_NUM - 1):
+				#reach max empty sent, require user to change his request
+				mails_html[newsletter[1]] = mail_const.CUSTOM_NEWS_HTML_PREFIX + mail_const.EMPTY_WARNING_NEWS_MAIL + mail_const.CUSTOM_NEWS_HTML_POSTFIX
+			else:
+				#send empty mail content
+				mails_html[newsletter[1]] = mail_const.CUSTOM_NEWS_HTML_PREFIX + mail_const.EMPTY_NEWS_MAIL + mail_const.CUSTOM_NEWS_HTML_POSTFIX
+				#increase number of empty mail sending
+				update_sql = 'UPDATE newsletter_custom SET empty_data_send_num = empty_data_send_num + 1 WHERE _id ='+str(newsletter[0])
+				cursor.execute(update_sql, {})
+				myConnection.commit()
 	# print mails_html
-	sendMailBatch(mails_html)
+	sendMailBatch(cursor, myConnection, mails_html)
