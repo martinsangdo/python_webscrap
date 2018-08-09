@@ -113,8 +113,12 @@ if (len(sent_newsletters) > 0):
 				item_html = mail_const.CUSTOM_NEWS_HTML_SMALL_ITEM_TMPL.replace('%slug_url%', mail_const.NEWS_LINK_PREFIX+one_article[2])
 				item_html = item_html.replace('%thumb_url%', one_article[1])
 				item_html = item_html.replace('%title%', one_article[3])
-				item_html = item_html.replace('%excerpt%', one_article[4])
+				#remove unwanted link
+				clean_excerpt = str(one_article[4]).replace('<a ', '<a style="display: none !important;" ')
+				item_html = item_html.replace('%excerpt%', clean_excerpt)
 				html_items.append(item_html);
+				# print item_html
 			mails_html[newsletter[1]] = mail_const.CUSTOM_NEWS_HTML_PREFIX + ''.join(html_items) + mail_const.CUSTOM_NEWS_HTML_POSTFIX
+			# print mails_html[newsletter[1]]
 	# print mails_html
 	sendMailBatch(mails_html)

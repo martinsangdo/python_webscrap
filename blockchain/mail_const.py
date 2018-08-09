@@ -26,8 +26,8 @@ CUSTOM_NEWS_HTML_PREFIX = """\
 			<div class="content">
 				<table>
 					<tr>
-						<td width="5%"><img src="http://blockbod.com/public/blockbod/img/logo.png" style="width:50px;height:auto;"/></td>
-            			<td style="font-weight:bold;">BLOCKBOD NEWSLETTER</td>
+						<td width="5%"><img class="logo" src="http://blockbod.com/public/blockbod/img/logo.png"/></td>
+            			<td><strong>BLOCKBOD NEWSLETTER</strong></td>
 					</tr>
 				</table>
 			</div>
@@ -39,18 +39,18 @@ CUSTOM_NEWS_HTML_PREFIX = """\
 <table class="body-wrap">
 	<tr>
 		<td></td>
-		<td class="container" bgcolor="#fff">
+		<td class="container">
 """
 CUSTOM_NEWS_HTML_SMALL_ITEM_TMPL = """\
 			<div class="content">
 				<table>
 					<tr>
-						<td class="small" width="15%" style="vertical-align: top; padding-right:5px;">
+						<td class="small small_td" width="15%">
 			              <a href="%slug_url%"><img src="%thumb_url%" style="width:75px;height:75px;"/></a>
 			            </td>
 						<td>
 							<h6><a href="%slug_url%">%title%</a></h6>
-							%excerpt%
+							<div class="mail_excerpt">%excerpt%</div>
 						</td>
 					</tr>
 				</table>
