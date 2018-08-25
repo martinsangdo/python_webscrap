@@ -14,6 +14,7 @@ def getSiteInfo(cur, site_id):
 	cur.execute(sql)
 	row = cur.fetchone()
 	return row
+
 #end getSiteInfo
 #get thumbnail url of post
 def get_thumbnail_url(site_info, post_raw_detail, scraper):
@@ -72,8 +73,8 @@ def get_top_coins (cursor):
 	if (cursor.rowcount > 0):
 		result = cursor.fetchall()
 		for row in result:
-	  		names.append(str(row[0]))
-	  		#join names into 1 string
+			names.append(str(row[0]))
+			#join names into 1 string
 		return '|'.join(map(str, names))
 	else:
 		return ''
