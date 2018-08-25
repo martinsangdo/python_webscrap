@@ -10,7 +10,7 @@ import json
 import re
 
 def getSiteInfo(cur, site_id):
-	sql = 'SELECT _id,api_uri,post_uri,item_num,thumb_url_param FROM site WHERE status=1 AND _id='+site_id
+	sql = 'SELECT _id,home_url,post_uri,item_num,thumb_url_param FROM site WHERE status=1 AND _id='+site_id
 	cur.execute(sql)
 	row = cur.fetchone()
 	return row
@@ -59,7 +59,7 @@ def get_meaningful_detail(site_info, post_raw_detail, scraper):
 	data_row['thumb_url'] = get_thumbnail_url(site_info, post_raw_detail, scraper)
 	#get author name
 	if (post_raw_detail['author'] > 0):
-		user_info = scraper.get(site_info[1]+'users/'+str(post_raw_detail['author'])).content
+		user_info = scraper.get(site_info[1]+'/wp-json/wp/v2/users/'+str(post_raw_detail['author'])).content
 		user_json = json.loads(user_info.decode("utf-8"))
 		if (user_json is not None and 'name' in user_json):
 			data_row['author_name'] = user_json['name']
@@ -89,7 +89,7 @@ cursor = myConnection.cursor()
 
 site_info = getSiteInfo( cursor, site_id )
 # print (site_info)
-api_url = site_info[1]+site_info[2]+'&per_page='+str(site_info[3])
+api_url = site_info[1]+'/wp-json/wp/v2/'+site_info[2]+'&per_page='+str(site_info[3])
 # print (api_url)
 scraper = cfscrape.create_scraper()  # returns a CloudflareScraper instance
 json_data = scraper.get(api_url).content
@@ -144,7 +144,7 @@ for post_detail in final_data:
 				cursor.execute(existed_sql)
 				if (cursor.rowcount == 0):
 					#not existed, insert new category
-					cat_info = scraper.get(site_info[1]+'categories/'+str(cat_id)).content
+					cat_info = scraper.get(site_info[1]+'/wp-json/wp/v2/categories/'+str(cat_id)).content
 					cat_json = json.loads(cat_info.decode("utf-8"))
 					insert_sql = ('INSERT INTO category (name, slug, site_id, site_cat_id, post_num) '+
 						'VALUES (%(name)s,%(slug)s,%(site_id)s,%(site_cat_id)s,1)')
