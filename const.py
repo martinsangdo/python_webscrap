@@ -9,8 +9,7 @@ REQUEST_HEADER = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.0; WOW64; rv:24.0) Ge
 HOSTNAME = 'localhost'
 USERNAME = 'root'
 PASSWORD = 'root'
-#DATABASE = 'game_review_news'
-DATABASE = 'blockbod_db'
+DATABASE = 'gameletgo'
 
 #gamereviewnews
 # HOSTNAME = '166.62.27.173'
