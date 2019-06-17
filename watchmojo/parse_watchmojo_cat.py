@@ -3,6 +3,7 @@ import const_mojo
 import mysql.connector
 from selenium import webdriver
 import sys
+import html2text
 
 def getCategoryInfo(conn, cat_id):
 	cur = conn.cursor()
@@ -38,9 +39,17 @@ if (cat_info is None):
 # begin parse page
 driver.get(const_mojo.DOMAIN+'categories/'+cat_info[0]+'/1')
 tags = []
-tags = driver.find_elements_by_class_name('owl-item')
-print (len(tags))
-# for tag in tags:
-#     print(tag.text)
+vid_items = driver.find_elements_by_class_name('item')
+print(len(vid_items))
+print('-----')
+print (html2text.html2text(vid_items[1].find_element_by_class_name('hptitle').get_attribute('innerHTML')))
+print('-----')
+print (html2text.html2text(vid_items[3].find_element_by_class_name('hptitle').get_attribute('innerHTML')))
+# print (vid_items[3].text)
+#begin parse each video item
+for item in vid_items:
+    #title
+    title = item.find_element_by_class_name('hptitle')
+    # print(title.text)
 
 cnx.close()
