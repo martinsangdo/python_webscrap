@@ -1,13 +1,16 @@
-#get all updated videos by category, not parse each video detail yet
+#get all updated videos by category/channels, not parse each video detail yet
 import const_mojo
 import mysql.connector
 from selenium import webdriver
 import sys
 import html2text
 
-def getCategoryInfo(conn, cat_id):
+def getCategoryInfo(conn, group_type, group_id):
 	cur = conn.cursor()
-	sql = 'SELECT slug FROM tbl_category WHERE is_active=1 AND id='+cat_id
+	if (group_type == const_mojo.CAT_TYPE):
+		sql = 'SELECT slug FROM tbl_category WHERE is_active=1 AND id='+group_id
+	else:
+		sql = 'SELECT slug FROM tbl_channel WHERE is_active=1 AND id='+group_id
 	cur.execute(sql)
 	row = cur.fetchone()
 	return row
@@ -18,9 +21,10 @@ chrome_options.add_argument('--headless')
 chrome_options.add_argument('--no-sandbox') # required when running as root user. otherwise you would get no sandbox errors.
 driver = webdriver.Chrome(executable_path=const_mojo.CHROME_DRIVER, options=chrome_options)
 #get category id
-if (len(sys.argv) == 1):	#empty parameter
+if (len(sys.argv) < 3):	#empty parameter
 	sys.exit()
-category_id = sys.argv[1]
+group_id = sys.argv[1]		#category or channel id
+group_type = sys.argv[2]	#category or channel
 #connect db
 db_config = {
   'user': const_mojo.USERNAME,
@@ -32,21 +36,17 @@ db_config = {
 }
 #init connection to db
 cnx = mysql.connector.connect(**db_config)
-cat_info = getCategoryInfo(cnx, category_id)
-if (cat_info is None):
+group_info = getCategoryInfo(cnx, group_type, group_id)
+if (group_info is None):	#not found
     sys.exit()
 
 # begin parse page
-driver.get(const_mojo.DOMAIN+'categories/'+cat_info[0]+'/1')
+if (group_type == const_mojo.CAT_TYPE):
+	driver.get(const_mojo.DOMAIN+'categories/'+group_info[0])
+else:
+	driver.get(const_mojo.DOMAIN+group_info[0])
 tags = []
 vid_items = driver.find_elements_by_class_name('item')
-#
-# print(len(vid_items))
-# print('-----')
-# print (html2text.html2text(vid_items[1].find_element_by_class_name('hptitle').get_attribute('innerHTML')))
-# print('-----')
-# print (html2text.html2text(vid_items[3].find_element_by_class_name('hptitle').get_attribute('innerHTML')))
-# print (vid_items[3].text)
 #begin parse each video item
 for item in vid_items:
 	a_tag = item.find_elements_by_tag_name('a')[0]
@@ -69,15 +69,26 @@ for item in vid_items:
 		cnx.commit()
 	else:
 		#insert new one
-		insert_sql = ('INSERT INTO tbl_video (title, thumbnail_url, original_id, category_id, published_date) '+
-			'VALUES (%(title)s,%(thumbnail_url)s,%(original_id)s,%(category_id)s, %(published_date)s)')
-		vid_detail = {
-			'title': title,
-			'thumbnail_url': img_tag.get_attribute('src'),
-			'original_id': original_video_id,
-			'category_id': category_id,
-			'published_date': published_date
-		}
+		if (group_type == const_mojo.CAT_TYPE):
+			insert_sql = ('INSERT INTO tbl_video (title, thumbnail_url, original_id, category_id, published_date) '+
+				'VALUES (%(title)s,%(thumbnail_url)s,%(original_id)s,%(category_id)s, %(published_date)s)')
+			vid_detail = {
+				'title': title,
+				'thumbnail_url': img_tag.get_attribute('src'),
+				'original_id': original_video_id,
+				'category_id': group_id,
+				'published_date': published_date
+			}
+		else:
+			insert_sql = ('INSERT INTO tbl_video (title, thumbnail_url, original_id, channel_id, published_date) '+
+				'VALUES (%(title)s,%(thumbnail_url)s,%(original_id)s,%(channel_id)s, %(published_date)s)')
+			vid_detail = {
+				'title': title,
+				'thumbnail_url': img_tag.get_attribute('src'),
+				'original_id': original_video_id,
+				'channel_id': group_id,
+				'published_date': published_date
+			}
 		cursor.execute(insert_sql, vid_detail)
 		cnx.commit()
 
