@@ -49,7 +49,7 @@ tags = []
 vid_items = driver.find_elements_by_class_name('item')
 #begin parse each video item
 for item in vid_items:
-	a_tag = item.find_elements_by_tag_name('a')[0]
+	a_tag = item.find_element_by_tag_name('a')
 	#split to get original video id
 	a_terms = [x.strip() for x in a_tag.get_attribute('href').split('/')]
 	original_video_id = a_terms[len(a_terms)-1]
