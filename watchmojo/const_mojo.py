@@ -10,4 +10,4 @@ CHROME_DRIVER = '/Users/sangdt/Downloads/SetupApps/python/chromedriver'
 DOMAIN = 'https://watchmojo.com/'
 CAT_TYPE = 'category'
 CHANNEL_TYPE = 'channel'
-VID_PARSE_NUM = 1   #number of video to parse
+VID_PARSE_NUM = 3   #number of video to parse
