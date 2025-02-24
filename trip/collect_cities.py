@@ -104,7 +104,7 @@ def find_match_cities(city, country):
                 response_data['wonder_id'] = item['id']
                 #2. find in trip
                 trip_cities = search_trip_locations(city)
-                if trip_cities['data'] != None:
+                if 'data' in trip_cities:
                     for trip_item in trip_cities['data']:
                         if trip_item['type'] == 'district':
                             if (city.lower() == trip_item['word'].lower().replace('<em>', '').replace('</em>', '')):
