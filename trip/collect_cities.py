@@ -109,10 +109,10 @@ def find_match_cities(city, country):
                         if trip_item['type'] == 'district':
                             if (city.lower() == trip_item['word'].lower().replace('<em>', '').replace('</em>', '')):
                                 response_data['trip_id'] = trip_item['id']
-                else:
-                    print('Not found city in Trip: ' + city + ' country: ' + country)
-    else:
-        print('Not found city in Wonderplan: ' + city + ' country: ' + country)
+                #else:
+                    #print('Not found city in Trip: ' + city + ' country: ' + country)
+    #else:
+        #print('Not found city in Wonderplan: ' + city + ' country: ' + country)
     #2. find in trip
 
     #get common id
@@ -252,11 +252,29 @@ for row in data:
                 else:
                     error_cities[city] = 'No attractions'
                     print('No attractions: ' + city + ' country: ' + country)
+        if city in error_cities:
+            #this city has issue which cannot get full details -> save error so that we don't scrape again
+            if db_city is None:
+                new_city_info = {
+                    'uuid': generate_random_uuid(),
+                    'name': city,
+                    'country': country,
+                    'error': error_cities[city]
+                }
+                tb_city.insert_one(new_city_info)
+                print("Inserted +++++++++++ city with error: " + city)
+            else:
+                update_city_info = {
+                    'error': error_cities[city]
+                }
+                print(update_city_info)
+                tb_city.update_one({'uuid': db_city['uuid']}, {'$set': update_city_info})
+                print("Updated --- city with error: " + city)
     index += 1
     print('Finish city# ' + str(index))
 
 # %%
-print(error_cities)
+#print(error_cities)
 
 # %%
 

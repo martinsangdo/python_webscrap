@@ -1,0 +1,622 @@
+City,Country
+London,United Kingdom
+Edinburgh,United Kingdom
+Manchester,United Kingdom
+Birmingham,United Kingdom
+Liverpool,United Kingdom
+Glasgow,United Kingdom
+Oxford,United Kingdom
+Cambridge,United Kingdom
+Bath,United Kingdom
+Bristol,United Kingdom
+York,United Kingdom
+Stratford-upon-Avon,United Kingdom
+Paris,France
+Nice,France
+Lyon,France
+Marseille,France
+Toulouse,France
+Bordeaux,France
+Strasbourg,France
+Nantes,France
+Montpellier,France
+Lille,France
+Cannes,France
+Avignon,France
+Chamonix,France
+Versailles,France
+Berlin,Germany
+Munich,Germany
+Hamburg,Germany
+Frankfurt,Germany
+Cologne,Germany
+Stuttgart,Germany
+Düsseldorf,Germany
+Dortmund,Germany
+Essen,Germany
+Leipzig,Germany
+Dresden,Germany
+Nuremberg,Germany
+Heidelberg,Germany
+Amsterdam,Netherlands
+Rotterdam,Netherlands
+The Hague,Netherlands
+Utrecht,Netherlands
+Eindhoven,Netherlands
+Maastricht,Netherlands
+Brussels,Belgium
+Bruges,Belgium
+Ghent,Belgium
+Antwerp,Belgium
+Zurich,Switzerland
+Geneva,Switzerland
+Basel,Switzerland
+Bern,Switzerland
+Lausanne,Switzerland
+Lucerne,Switzerland
+Interlaken,Switzerland
+Zermatt,Switzerland
+Vienna,Austria
+Salzburg,Austria
+Innsbruck,Austria
+Graz,Austria
+Dublin,Ireland
+Cork,Ireland
+Galway,Ireland
+Limerick,Ireland
+Lisbon,Portugal
+Porto,Portugal
+Faro,Portugal
+Sintra,Portugal
+Cascais,Portugal
+Madrid,Spain
+Barcelona,Spain
+Seville,Spain
+Valencia,Spain
+Granada,Spain
+Malaga,Spain
+Bilbao,Spain
+San Sebastian,Spain
+Cordoba,Spain
+Toledo,Spain
+Rome,Italy
+Florence,Italy
+Venice,Italy
+Milan,Italy
+Naples,Italy
+Verona,Italy
+Turin,Italy
+Bologna,Italy
+Pisa,Italy
+Siena,Italy
+Cinque Terre,Italy
+Amalfi Coast,Italy
+Athens,Greece
+Santorini,Greece
+Mykonos,Greece
+Crete,Greece
+Rhodes,Greece
+Corfu,Greece
+Thessaloniki,Greece
+Valletta,Malta
+Mdina,Malta
+Paphos,Cyprus
+Limassol,Cyprus
+Larnaca,Cyprus
+Stockholm,Sweden
+Copenhagen,Denmark
+Oslo,Norway
+Helsinki,Finland
+Reykjavik,Iceland
+Bergen,Norway
+Trondheim,Norway
+Tallinn,Estonia
+Riga,Latvia
+Vilnius,Lithuania
+Kaunas,Lithuania
+Klaipeda,Lithuania
+Warsaw,Poland
+Krakow,Poland
+Gdansk,Poland
+Wroclaw,Poland
+Poznan,Poland
+Prague,Czech Republic
+Brno,Czech Republic
+Cesky Krumlov,Czech Republic
+Budapest,Hungary
+Debrecen,Hungary
+Szeged,Hungary
+Bratislava,Slovakia
+Kosice,Slovakia
+Ljubljana,Slovenia
+Bled,Slovenia
+Moscow,Russia
+St. Petersburg,Russia
+Kazan,Russia
+Nizhny Novgorod,Russia
+Yekaterinburg,Russia
+Kyiv,Ukraine
+Lviv,Ukraine
+Odessa,Ukraine
+Kharkiv,Ukraine
+Minsk,Belarus
+Bucharest,Romania
+Cluj-Napoca,Romania
+Timișoara,Romania
+Sofia,Bulgaria
+Varna,Bulgaria
+Plovdiv,Bulgaria
+Zagreb,Croatia
+Dubrovnik,Croatia
+Split,Croatia
+Zadar,Croatia
+Rijeka,Croatia
+Belgrade,Serbia
+Novi Sad,Serbia
+Tirana,Albania
+Sarajevo,Bosnia and Herzegovina
+Mostar,Bosnia and Herzegovina
+Kotor,Montenegro
+Budva,Montenegro
+Skopje,North Macedonia
+Pristina,Kosovo
+Istanbul,Turkey
+Antalya,Turkey
+Ankara,Turkey
+Izmir,Turkey
+Cappadocia,Turkey
+Tbilisi,Georgia
+Batumi,Georgia
+Yerevan,Armenia
+Baku,Azerbaijan
+New York City,United States
+Los Angeles,United States
+Chicago,United States
+San Francisco,United States
+Las Vegas,United States
+Miami,United States
+Orlando,United States
+Washington D.C.,United States
+Boston,United States
+Seattle,United States
+New Orleans,United States
+Philadelphia,United States
+Atlanta,United States
+Houston,United States
+Phoenix,United States
+Dallas,United States
+San Diego,United States
+Minneapolis,United States
+St. Louis,United States
+Tampa,United States
+Baltimore,United States
+Denver,United States
+Pittsburgh,United States
+Charlotte,United States
+Cincinnati,United States
+Kansas City,United States
+Portland,United States
+San Antonio,United States
+Austin,United States
+Nashville,United States
+Milwaukee,United States
+Indianapolis,United States
+Jacksonville,United States
+Oklahoma City,United States
+Memphis,United States
+Raleigh,United States
+Richmond,United States
+Cleveland,United States
+San Jose,United States
+Detroit,United States
+Buffalo,United States
+Columbus,United States
+Hartford,United States
+Providence,United States
+Rochester,United States
+Albany,United States
+Omaha,United States
+Tulsa,United States
+Fresno,United States
+Sacramento,United States
+Long Beach,United States
+Mesa,United States
+Virginia Beach,United States
+Atlanta,United States
+Colorado Springs,United States
+Omaha,United States
+Raleigh,United States
+Miami,United States
+Tampa,United States
+New Orleans,United States
+Seattle,United States
+Washington D.C.,United States
+Boston,United States
+San Antonio,United States
+San Diego,United States
+Dallas,United States
+Phoenix,United States
+San Jose,United States
+Jacksonville,United States
+Indianapolis,United States
+Austin,United States
+Columbus,United States
+Fort Worth,United States
+Charlotte,United States
+Detroit,United States
+El Paso,United States
+Memphis,United States
+Boston,United States
+Seattle,United States
+Washington D.C.,United States
+San Francisco,United States
+New Orleans,United States
+Philadelphia,United States
+Atlanta,United States
+Houston,United States
+Denver,United States
+Pittsburgh,United States
+Baltimore,United States
+Minneapolis,United States
+St. Louis,United States
+Milwaukee,United States
+Cincinnati,United States
+Kansas City,United States
+Portland,United States
+Orlando,United States
+Las Vegas,United States
+Miami,United States
+Los Angeles,United States
+Chicago,United States
+New York City,United States
+Toronto,Canada
+Montreal,Canada
+Vancouver,Canada
+Calgary,Canada
+Ottawa,Canada
+Edmonton,Canada
+Winnipeg,Canada
+Quebec City,Canada
+Hamilton,Canada
+Halifax,Canada
+Victoria,Canada
+London,Canada
+Kitchener,Canada
+Saskatoon,Canada
+Regina,Canada
+Niagara Falls,Canada
+Banff,Canada
+Jasper,Canada
+Whistler,Canada
+Mexico City,Mexico
+Guadalajara,Mexico
+Monterrey,Mexico
+Puebla,Mexico
+Toluca,Mexico
+Tijuana,Mexico
+Leon,Mexico
+Ciudad Juarez,Mexico
+Queretaro,Mexico
+Morelia,Mexico
+Oaxaca,Mexico
+San Luis Potosi,Mexico
+Merida,Mexico
+Aguascalientes,Mexico
+Hermosillo,Mexico
+Saltillo,Mexico
+Villahermosa,Mexico
+Culiacan,Mexico
+Xalapa,Mexico
+Cancun,Mexico
+Playa del Carmen,Mexico
+Cozumel,Mexico
+Puerto Vallarta,Mexico
+Acapulco,Mexico
+San Miguel de Allende,Mexico
+Guanajuato,Mexico
+Chichen Itza,Mexico
+Tulum,Mexico
+Palenque,Mexico
+Rio de Janeiro,Brazil
+Sao Paulo,Brazil
+Buenos Aires,Argentina
+Lima,Peru
+Bogota,Colombia
+Santiago,Chile
+Medellin,Colombia
+Caracas,Venezuela
+Salvador,Brazil
+Brasilia,Brazil
+Fortaleza,Brazil
+Guayaquil,Ecuador
+Manaus,Brazil
+Recife,Brazil
+Porto Alegre,Brazil
+Cali,Colombia
+Belo Horizonte,Brazil
+Curitiba,Brazil
+Natal,Brazil
+Goiania,Brazil
+Rosario,Argentina
+La Paz,Bolivia
+Quito,Ecuador
+Montevideo,Uruguay
+Cordoba,Argentina
+Asuncion,Paraguay
+Santa Cruz de la Sierra,Bolivia
+Barranquilla,Colombia
+Arequipa,Peru
+Vitoria,Brazil
+Campo Grande,Brazil
+Cuiaba,Brazil
+Joao Pessoa,Brazil
+Sao Luis,Brazil
+Maceio,Brazil
+Teresina,Brazil
+Belem,Brazil
+Iguazu,Argentina
+Iguazu,Brazil
+Ushuaia,Argentina
+Bariloche,Argentina
+El Calafate,Argentina
+Salta,Argentina
+Mendoza,Argentina
+Mar del Plata,Argentina
+San Carlos de Bariloche,Argentina
+Puerto Madryn,Argentina
+Villa Carlos Paz,Argentina
+Gramado,Brazil
+Foz do Iguaçu,Brazil
+Florianopolis,Brazil
+Olinda,Brazil
+Ouro Preto,Brazil
+Paraty,Brazil
+Bonito,Brazil
+Amazonas,Brazil
+Pantanal,Brazil
+Cusco,Peru
+Machu Picchu,Peru
+Arequipa,Peru
+Trujillo,Peru
+Chiclayo,Peru
+Piura,Peru
+Iquitos,Peru
+Huancayo,Peru
+Puno,Peru
+Ayacucho,Peru
+Cajamarca,Peru
+Valparaiso,Chile
+Viña del Mar,Chile
+Antofagasta,Chile
+Temuco,Chile
+Concepcion,Chile
+Puerto Montt,Chile
+Iquique,Chile
+Rancagua,Chile
+Talca,Chile
+Arica,Chile
+Punta Arenas,Chile
+Valdivia,Chile
+Cartagena,Colombia
+Santa Marta,Colombia
+Barranquilla,Colombia
+Bucaramanga,Colombia
+Manizales,Colombia
+Pereira,Colombia
+Villavicencio,Colombia
+Pasto,Colombia
+Tunja,Colombia
+Popayan,Colombia
+Guayaquil,Ecuador
+Cuenca,Ecuador
+Santo Domingo,Ecuador
+Manta,Ecuador
+Machala,Ecuador
+Ambato,Ecuador
+Loja,Ecuador
+Portoviejo,Ecuador
+Esmeraldas,Ecuador
+Ibarra,Ecuador
+Tokyo,Japan
+Shanghai,China
+Beijing,China
+Mumbai,India
+Delhi,India
+Seoul,South Korea
+Osaka,Japan
+Karachi,Pakistan
+Dhaka,Bangladesh
+Jakarta,Indonesia
+Guangzhou,China
+Bangalore,India
+Ho Chi Minh City,Vietnam
+Bangkok,Thailand
+Manila,Philippines
+Kuala Lumpur,Malaysia
+Singapore,Singapore
+Hong Kong,China
+Chennai,India
+Hyderabad,India
+Ahmedabad,India
+Kolkata,India
+Surat,India
+Pune,India
+Jaipur,India
+Lucknow,India
+Kanpur,India
+Nagpur,India
+Indore,India
+Bhopal,India
+Patna,India
+Vadodara,India
+Ghaziabad,India
+Ludhiana,India
+Agra,India
+Nashik,India
+Faridabad,India
+Meerut,India
+Rajkot,India
+Varanasi,India
+Srinagar,India
+Amritsar,India
+Aurangabad,India
+Jodhpur,India
+Ranchi,India
+Raipur,India
+Allahabad,India
+Coimbatore,India
+Jabalpur,India
+Madurai,India
+Visakhapatnam,India
+Guwahati,India
+Chandigarh,India
+Thiruvananthapuram,India
+Hubli–Dharwad,India
+Mysuru,India
+Gurgaon,India
+Aligarh,India
+Jalandhar,India
+Tiruchirappalli,India
+Bhubaneswar,India
+Salem,India
+Kochi,India
+Kottayam,India
+Dehradun,India
+Durgapur,India
+Asansol,India
+Vasai-Virar City,India
+Jamshedpur,India
+Bokaro Steel City,India
+Dhanbad,India
+Kharagpur,India
+Udaipur,India
+Jabalpur,India
+Moradabad,India
+Prayagraj,India
+Kozhikode,India
+Firozabad,India
+Noida,India
+Gorakhpur,India
+Jamshedpur,India
+Srinagar,India
+Varanasi,India
+Amritsar,India
+Agra,India
+Allahabad,India
+Kanpur,India
+Lucknow,India
+Meerut,India
+Nagpur,India
+Pune,India
+Rajkot,India
+Ranchi,India
+Raipur,India
+Surat,India
+Vadodara,India
+Visakhapatnam,India
+Guwahati,India
+Chandigarh,India
+Thiruvananthapuram,India
+Hubli–Dharwad,India
+Mysuru,India
+Gurgaon,India
+Aligarh,India
+Jalandhar,India
+Tiruchirappalli,India
+Bhubaneswar,India
+Salem,India
+Kochi,India
+Kottayam,India
+Dehradun,India
+Durgapur,India
+Asansol,India
+Vasai-Virar City,India
+Bokaro Steel City,India
+Dhanbad,India
+Kharagpur,India
+Udaipur,India
+Moradabad,India
+Prayagraj,India
+Kozhikode,India
+Firozabad,India
+Noida,India
+Gorakhpur,India
+Kathmandu,Nepal
+Hanoi,Vietnam
+Phnom Penh,Cambodia
+Vientiane,Laos
+Yangon,Myanmar
+Ulaanbaatar,Mongolia
+Pyongyang,North Korea
+Kabul,Afghanistan
+Islamabad,Pakistan
+Lahore,Pakistan
+Faisalabad,Pakistan
+Rawalpindi,Pakistan
+Peshawar,Pakistan
+Gujranwala,Pakistan
+Multan,Pakistan
+Hyderabad,Pakistan
+Islamabad,Pakistan
+Quetta,Pakistan
+Kandahar,Afghanistan
+Herat,Afghanistan
+Mazar-i-Sharif,Afghanistan
+Dubai,UAE
+Abu Dhabi,UAE
+Sharjah,UAE
+Al Ain,UAE
+Doha,Qatar
+Muscat,Oman
+Kuwait City,Kuwait
+Riyadh,Saudi Arabia
+Jeddah,Saudi Arabia
+Mecca,Saudi Arabia
+Medina,Saudi Arabia
+Damascus,Syria
+Beirut,Lebanon
+Amman,Jordan
+Jerusalem,Israel
+Tel Aviv,Israel
+Baghdad,Iraq
+Tehran,Iran
+Mashhad,Iran
+Isfahan,Iran
+Kuala Lumpur,Malaysia
+Singapore,Singapore
+Jakarta,Indonesia
+Bandung,Indonesia
+Medan,Indonesia
+Surabaya,Indonesia
+Palembang,Indonesia
+Tangerang,Indonesia
+Semarang,Indonesia
+Depok,Indonesia
+Makassar,Indonesia
+Batam,Indonesia
+Pekanbaru,Indonesia
+Bogor,Indonesia
+Bandar Lampung,Indonesia
+Padang,Indonesia
+Malang,Indonesia
+Samarinda,Indonesia
+Balikpapan,Indonesia
+Manado,Indonesia
+Yogyakarta,Indonesia
+Surakarta,Indonesia
+Banjarmasin,Indonesia
+Pontianak,Indonesia
+Denpasar,Indonesia
+Jayapura,Indonesia
+Ambon,Indonesia
+Kupang,Indonesia
+Kendari,Indonesia
+Sorong,Indonesia
+Palu,Indonesia
+Tarakan,Indonesia
+Sukabumi,Indonesia
+Cimahi,Indonesia
+Tasikmalaya,Indonesia
+Serang,Indonesia
+Jambi,Indonesia
+Mataram,Indonesia
