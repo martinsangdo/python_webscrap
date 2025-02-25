@@ -61,7 +61,7 @@ def search_trip_locations(keyword):
         return r.json()
     except Exception as e:
        print(e)
-       return e
+       return {'error': e}
 
 # %%
 def load_csv(filepath):
