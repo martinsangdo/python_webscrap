@@ -172,7 +172,7 @@ def get_trip_details(trip_city_id):
         return r.json()
     except Exception as e:
        print(e)
-       return e
+       return {'error': e}
 #test
 
 
