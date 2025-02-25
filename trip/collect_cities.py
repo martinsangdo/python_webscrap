@@ -60,7 +60,7 @@ def search_trip_locations(keyword):
         r = requests.post(url, headers=HEADER, json=json_data)
         return r.json()
     except Exception as e:
-       print(e)
+       #print(e)
        return {'error': e}
 
 # %%
