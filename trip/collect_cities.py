@@ -55,7 +55,6 @@ def search_trip_locations(keyword):
             ]
         }
     }
-
     try:
         r = requests.post(url, headers=HEADER, json=json_data)
         return r.json()
@@ -177,19 +176,38 @@ def get_trip_details(trip_city_id):
 
 
 # %%
+#find all data in our db
+db_cities_total = tb_city.count_documents({})
+print(db_cities_total)
+#find all
+db_cities = tb_city.find({})
+scrape_cities = []
+city_country_map = {}   #key: city@country, value: 1
+for city in db_cities:
+    city_country_map[city['name']+'@'+city['country']] = 1
+#
 filepath = Path("./worldcities.csv")  # Relative path (better)
-
 header, data = load_csv(filepath)
+#print(str(len(data)))
+scrape_cities = []
+for row in data:
+    if row[0]+'@'+row[4] not in city_country_map:
+        #need to scrape this city
+        scrape_cities.append({'name': row[0], 'country': row[4]})
+    
+print(str(len(scrape_cities)))
+#print(scrape_cities)
+
+
+# %%
 
 index = 0
 error_cities = {}
-for row in data:
-    city = row[0]
-    country = row[4]
+for row in scrape_cities:
+    city = row['name']
+    country = row['country']
     #find if the city existed in db
     db_city = tb_city.find_one({'name': city, 'country': country})
-    if db_city is not None:
-       continue;    #do not get info of this city again
     #never scrape info of this city
     if index < 50000:
         results = find_match_cities(city, country)
