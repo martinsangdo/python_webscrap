@@ -20,7 +20,7 @@ TRIP_URL = os.environ['TRIP_URL']
 # %%
 db_client = pymongo.MongoClient('mongodb://localhost:27017')
 collections = db_client['db_ai_travel_planner']
-tb_city = collections['tb_city']
+tb_city_org = collections['tb_city_org']
 
 # %%
 def custom_query(get_url):
@@ -121,15 +121,6 @@ def find_match_cities(city, country):
 find_match_cities('Tokyo', 'Japan')
 
 # %%
-def generate_random_uuid():
-    """Generates a random UUID (Universally Unique Identifier).
-
-    Returns:
-        A string representing the UUID.
-    """
-    return str(uuid.uuid4())
-
-# %%
 continent_map = {}  #key: country, value: continent
 continents = {} #key: continent, value: 1
 #read continent info
@@ -141,6 +132,55 @@ for row in data:
     # if row[12] not in continents:
     #     continents[row[12]] = 1
 #print(continent_map)
+
+# %%
+def generate_random_uuid():
+    """Generates a random UUID (Universally Unique Identifier).
+
+    Returns:
+        A string representing the UUID.
+    """
+    return str(uuid.uuid4())
+
+# %%
+#replace country name in db to match with the continent
+scraping_country_map = {}   #key: country, value: 1
+db_cities = tb_city_org.find({'error':None, 'city_id':None})
+for db_city in db_cities:
+    if db_city['country'] == 'Korea, South':
+        db_city['country'] = db_city['country'].replace('Korea, South', 'South Korea')
+    if db_city['country'] == 'Congo (Kinshasa)':
+        db_city['country'] = db_city['country'].replace('Congo (Kinshasa)', 'Democratic Republic of the Congo')
+    if db_city['country'] == 'Congo (Brazzaville)':
+        db_city['country'] = db_city['country'].replace('Congo (Brazzaville)', 'Republic of the Congo')
+    if db_city['country'] == 'Korea, North':
+        db_city['country'] = db_city['country'].replace('Korea, North', 'North Korea')
+    if db_city['country'] == 'Czechia':
+        db_city['country'] = db_city['country'].replace('Czechia', 'Czech Republic')
+    if db_city['country'] == 'Burma':
+        db_city['country'] = db_city['country'].replace('Burma', 'Myanmar')
+    if db_city['country'] == 'Macau':
+        db_city['country'] = db_city['country'].replace('Macau', 'Macau S.A.R.')
+    if db_city['country'] == 'Bahamas, The':
+        db_city['country'] = db_city['country'].replace('Bahamas, The', 'The Bahamas')
+    # if db_city['country'] == 'Philippines':
+    #     db_city['country'] = db_city['country'].replace('', '')
+    # if db_city['country'] == 'Fiji':
+    #     db_city['country'] = db_city['country'].replace('', '')
+    if db_city['country'] == 'Gambia, The':
+        db_city['country'] = db_city['country'].replace('Gambia, The', 'The Gambia')
+    if db_city['country'] == 'Cabo Verde':
+        db_city['country'] = db_city['country'].replace('Cabo Verde', 'Cape Verde')
+    # if db_city['country'] == 'Ireland':
+    #     db_city['country'] = db_city['country'].replace('', '')
+    if db_city['country'] == 'U.S. Virgin Islands':
+        db_city['country'] = db_city['country'].replace('U.S. Virgin Islands', 'Virgin Islands (US)')
+    scraping_country_map[db_city['country']] = 1
+    #print(db_city)
+        #update db
+    tb_city_org.update_one({'uuid': db_city['uuid']}, {'$set': db_city})
+scraping_country_map
+
 
 # %%
 #find other info of city
@@ -177,10 +217,10 @@ def get_trip_details(trip_city_id):
 
 # %%
 #find all data in our db
-db_cities_total = tb_city.count_documents({})
-print(db_cities_total)
-#find all
-db_cities = tb_city.find({})
+# db_cities_total = tb_city_org.count_documents({})
+# print(db_cities_total)
+#find all missing cities
+db_cities = tb_city_org.find({'city_id':None})
 scrape_cities = []
 city_country_map = {}   #key: city@country, value: 1
 for city in db_cities:
@@ -191,13 +231,33 @@ header, data = load_csv(filepath)
 #print(str(len(data)))
 scrape_cities = []
 for row in data:
-    if row[0]+'@'+row[4] not in city_country_map:
+    if row[0]+'@'+row[4].strip() in city_country_map:
         #need to scrape this city
-        scrape_cities.append({'name': row[0], 'country': row[4]})
+        scrape_cities.append({'name': row[0].strip(), 'country': row[4].strip()})
     
 print(str(len(scrape_cities)))
 #print(scrape_cities)
 
+
+# %%
+scrape_cities[0]
+
+# %%
+import random
+def get_4_random_items(arr):
+    """
+    Returns 4 random items from the given array.
+
+    Args:
+        arr: The input array.
+
+    Returns:
+        A list containing 4 random items from the array, or a list containing the entire array if the array has less than 4 items.
+    """
+    if len(arr) <= 4:
+        return arr[:] # Return a copy of the list to avoid modifying the original
+    else:
+        return random.sample(arr, 4)
 
 # %%
 
@@ -207,9 +267,9 @@ for row in scrape_cities:
     city = row['name']
     country = row['country']
     #find if the city existed in db
-    db_city = tb_city.find_one({'name': city, 'country': country})
+    db_city = tb_city_org.find_one({'name': city, 'country': country})
     #never scrape info of this city
-    if index < 50000:
+    if index < 22000:
         results = find_match_cities(city, country)
         if 'wonder_id' not in results or 'trip_id' not in results:
             error_cities[city] = 'Not found city'
@@ -224,10 +284,13 @@ for row in scrape_cities:
                 totalReview = 0
                 imgUrls = []
                 if 'attractionList' in raw_details:
+                    allImgUrls = []
                     for item in raw_details['attractionList']:
                         if 'card' in item:
-                            if len(imgUrls) < 4:    #we store max 5 image
-                                imgUrls.append(item['card']['coverImageUrl'])
+                            allImgUrls.append(item['card']['coverImageUrl'])
+                            #get max 4 images in the list
+                            if (len(allImgUrls) > 4):
+                                imgUrls = get_4_random_items(allImgUrls)
                             if 'commentInfo' in item['card']:
                                 totalReview += item['card']['commentInfo']['commentCount']
                             
@@ -251,7 +314,7 @@ for row in scrape_cities:
                                 'imgUrls': imgUrls,
                                 'wonder_id': results['wonder_id']
                             }
-                            tb_city.insert_one(new_city_info)
+                            tb_city_org.insert_one(new_city_info)
                             print("Inserted +++++++++++ city: " + city)
                         else:
                             #update info
@@ -265,7 +328,7 @@ for row in scrape_cities:
                                 'imgUrls': imgUrls,
                                 'wonder_id': results['wonder_id']
                             }
-                            tb_city.update_one({'uuid': db_city['uuid']}, {'$set': update_city_info})
+                            tb_city_org.update_one({'uuid': db_city['uuid']}, {'$set': update_city_info})
                             print("Updated --- city: " + city)
                 else:
                     error_cities[city] = 'No attractions'
@@ -279,14 +342,14 @@ for row in scrape_cities:
                     'country': country,
                     'error': error_cities[city]
                 }
-                tb_city.insert_one(new_city_info)
+                tb_city_org.insert_one(new_city_info)
                 print("Inserted +++++++++++ city with error: " + city)
             else:
                 update_city_info = {
                     'error': error_cities[city]
                 }
                 print(update_city_info)
-                tb_city.update_one({'uuid': db_city['uuid']}, {'$set': update_city_info})
+                tb_city_org.update_one({'uuid': db_city['uuid']}, {'$set': update_city_info})
                 print("Updated --- city with error: " + city)
     index += 1
     print('Finish city# ' + str(index))
