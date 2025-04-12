@@ -96,7 +96,7 @@ def scrape_posts():
     print('Finished scraping all pages')
 #test
 scrape_posts()
-
+db_client.close()
 # %%
 
 
