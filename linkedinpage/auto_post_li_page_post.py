@@ -53,7 +53,7 @@ def auto_repost():
     #1. check how many posts today (<24 hours)
     timenow = get_current_timestamp_milliseconds()  #milliseconds
     last24hours = timenow - 24 * 60 * 60 * 1000
-    todayPosts = tb_page_post.count_documents({'shared': 1, 'shared_time': {'$gt': last24hours }, 'shared_time': {'$lt': timenow }})
+    todayPosts = tb_page_post.count_documents({'shared': 1, '$and': [ {'shared_time': {'$gt': last24hours }}, {'shared_time': {'$lt': timenow }} ] })
     #print(last24hours)
     if todayPosts < 5:
         #2. if today posted < 5 posts:
