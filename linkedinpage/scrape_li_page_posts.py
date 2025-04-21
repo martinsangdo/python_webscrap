@@ -20,8 +20,8 @@ LI_VERSION = os.environ['LI_VERSION']
 LI_ACCESS_TOKEN = os.environ['LI_ACCESS_TOKEN']
 
 # %%
-db_client = pymongo.MongoClient('mongodb://localhost:27017')
-db = db_client['db_li_page_posts']
+db_client = pymongo.MongoClient(os.environ['REMOTE_MONGO_DB'])
+db = db_client['db_infographic']
 tb_author = db['tb_author']
 tb_page_post = db['tb_page_posts']
 

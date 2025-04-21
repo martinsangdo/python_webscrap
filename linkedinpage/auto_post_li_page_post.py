@@ -33,8 +33,8 @@ li_headers = {
 owner_id = "urn:li:organization:" + os.environ['MY_PAGE_ID']    #my page
 
 # %%
-db_client = pymongo.MongoClient('mongodb://localhost:27017')
-db = db_client['db_li_page_posts']
+db_client = pymongo.MongoClient(os.environ['REMOTE_MONGO_DB'])
+db = db_client['db_infographic']
 tb_page_post = db['tb_page_posts']
 
 # %%
