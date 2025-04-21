@@ -15,7 +15,7 @@ def get_current_timestamp_milliseconds():
 
 # %%
 load_dotenv() 
-LI_URI = os.environ['LI_URI']
+LI_REST_URI = os.environ['LI_REST_URI']
 LI_VERSION = os.environ['LI_VERSION']
 LI_ACCESS_TOKEN = os.environ['LI_ACCESS_TOKEN']
 
@@ -28,7 +28,7 @@ tb_page_post = db['tb_page_posts']
 # %%
 def get_request(url):
     #print(url)
-    url = LI_URI + url
+    url = LI_REST_URI + url
     headers = {
         'Authorization': LI_ACCESS_TOKEN,
         'LinkedIn-Version': LI_VERSION
