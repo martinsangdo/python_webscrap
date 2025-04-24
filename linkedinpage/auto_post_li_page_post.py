@@ -180,6 +180,9 @@ def reformat_description():
     #author
     description = description.replace(':person\\_', ':person_')
     description = description.replace(':person\_', ':person_')
+    description = description.replace('urn:li:person:', '')
+    description = description.replace('urn:li:organization:', '')
+
     return description
 
 # %%
