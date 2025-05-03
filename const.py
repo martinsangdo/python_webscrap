@@ -1,3 +1,6 @@
+import uuid
+import time
+
 #constant
 PART='contentDetails,snippet'
 PER_PAGE='10'
@@ -18,3 +21,18 @@ DATABASE = 'gameletgo'
 # DATABASE = 'game_review_news'
 
 TOP_COIN_NEWS_CAT_ID = 615
+
+#
+def generate_random_uuid():
+    """Generates a random UUID (Universally Unique Identifier).
+
+    Returns:
+        A string representing the UUID.
+    """
+    return str(uuid.uuid4())
+#
+def get_current_timestamp_milliseconds():
+  """
+  Returns the current timestamp in milliseconds since the epoch.
+  """
+  return int(time.time() * 1000)
