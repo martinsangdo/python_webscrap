@@ -64,7 +64,7 @@ def get_1_latest_post():
     todayPosts = tb_page_post.count_documents({'shared': 1, '$and': [ {'shared_time': {'$gt': last24hours }}, {'shared_time': {'$lt': timenow }} ] })
     # print(last24hours)
     print(todayPosts)
-    if todayPosts < 10:
+    if todayPosts < 5:
         #2. if today posted < 5 posts:
         #2.1 get 1 new post RANDOMLY, sorted by lastModifiedAt
         random_document = next(tb_page_post.aggregate([
