@@ -1,15 +1,16 @@
 #https://github.com/vgalin/html2image
 from html2image import Html2Image
 
-hti = Html2Image(custom_flags=['--headless=new'], size=(1920, 1080))
+hti = Html2Image(custom_flags=['--headless=new', '--quiet=True'], size=(1920, 1080))
 #https://github.com/vgalin/html2image/issues/177 (size should generated from HTML code)
 
-def generate_image(str_html, filepath):
+def generate_image(str_html, folder_path, filename):
+    hti.output_path = folder_path
     try:
         hti.screenshot(
             html_str=str_html,
             # html_file='sample.html',
-            save_as=filepath,
+            save_as=filename,
             size=(1920, 1080)
         )
     except Exception as e:
