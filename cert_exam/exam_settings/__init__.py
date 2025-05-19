@@ -85,3 +85,79 @@ html_tail_str = '''
     </body>
 </html>
 '''
+
+html_pdf_head_str = '''
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Question and Answers</title>
+    <style>
+        @page {
+            size: a4;
+            @frame content_frame {
+                left: 15pt;
+                width: 590pt;
+                top: 15pt;
+                height: 800pt;
+        }
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: sans-serif;
+            font-size: 1.2em;
+            flex-direction: column;
+        }
+
+        .container {
+            padding: 20px;
+            text-align: center;
+        }
+
+        .question {
+            margin-top: 6px;
+            margin-bottom: 3px;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        .answer, .explanation {
+            text-align: left;
+        }
+
+        .answer label {
+            display: block;
+            padding: 2px;
+        }
+
+        .answer label.correct {
+            color: green;
+            font-weight: bold;
+        }
+
+        .explanation {
+            display: none;
+        }
+
+        .explanation label {
+            font-style: italic;
+        }
+
+        .explanation.show {
+            display:block;
+        }
+    </style>
+</head>
+<body>
+'''
+
+html_pdf_tail_str = '''
+    </body>
+</html>
+'''
