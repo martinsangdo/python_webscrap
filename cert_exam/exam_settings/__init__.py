@@ -35,7 +35,7 @@ html_head_str = '''
         }
 
         .container {
-            padding: 30px;
+            padding: 0 200px;
             text-align: center;
         }
 
@@ -55,8 +55,6 @@ html_head_str = '''
             display: block;
             line-height: 1.4;
             padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
         }
 
         .answer label.correct {
