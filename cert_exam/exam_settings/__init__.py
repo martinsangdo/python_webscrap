@@ -98,16 +98,16 @@ html_pdf_head_str = '''
             size: a4;
             @frame content_frame {
                 left: 15pt;
-                width: 590pt;
+                width: 580pt;
                 top: 15pt;
+                right: auto;
+                bottom: auto;
                 height: 800pt;
-        }
+            }
         }
 
         body {
             display: flex;
-            justify-content: center;
-            align-items: center;
             min-height: 100vh;
             margin: 0;
             font-family: sans-serif;
@@ -121,8 +121,6 @@ html_pdf_head_str = '''
         }
 
         .question {
-            margin-top: 6px;
-            margin-bottom: 3px;
             text-align: left;
             font-weight: bold;
         }
@@ -146,11 +144,32 @@ html_pdf_head_str = '''
         }
 
         .explanation label {
+            display: block;
             font-style: italic;
+            padding: 5px;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
 
         .explanation.show {
             display:block;
+        }
+
+        .explanation.show .correct{
+            color: green;
+            font-weight: bold;
+        }
+
+        .copyright {
+            font-size: 0.5em;
+            margin-top:50px;
+            bottom: 5px;
+        }
+
+        .checkout {
+            margin-top:50px;
+            bottom: 5px;
+            font-size:0.5em;
         }
     </style>
 </head>

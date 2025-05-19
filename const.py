@@ -3,6 +3,7 @@ import time
 import requests
 import re
 import json
+from datetime import datetime
 
 #constant
 PART='contentDetails,snippet'
@@ -127,3 +128,10 @@ def insert_questions(collection, json_question):
             #insert new document
             collection.insert_one(json_question)
             #print('Inserted new doc')
+
+def get_current_date_yyyymmdd():
+  """
+  Returns the current date as a string in the format yyyymmdd.
+  """
+  now = datetime.now()
+  return now.strftime("%Y%m%d")
