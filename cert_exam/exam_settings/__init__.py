@@ -31,11 +31,11 @@ html_head_str = '''
             min-height: 100vh;
             margin: 0;
             font-family: sans-serif;
-            font-size: 2em;
+            font-size: 3em;
         }
 
         .container {
-            padding: 0 200px;
+            padding: 0 100px;
             text-align: center;
         }
 
