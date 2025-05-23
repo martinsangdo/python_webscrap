@@ -11,11 +11,22 @@ def generate_image(str_html, folder_path, filename):
             html_str=str_html,
             # html_file='sample.html',
             save_as=filename,
-            size=(1920, 1080)
+            size=(1920, 1080),
         )
     except Exception as e:
         print(e)
-#
+
+def generate_image_portrait(str_html, folder_path, filename):
+    hti.output_path = folder_path
+    try:
+        hti.screenshot(
+            html_str=str_html,
+            save_as=filename,
+            size=(1080, 1920)
+        )
+    except Exception as e:
+        print(e)
+########## 1 page 1 image styles
 html_head_str = '''
 <!DOCTYPE html>
 <html lang="en">
@@ -85,7 +96,7 @@ html_tail_str = '''
     </body>
 </html>
 '''
-
+########## PDF styles
 html_pdf_head_str = '''
 <!DOCTYPE html>
 <html lang="en">
@@ -178,5 +189,57 @@ html_pdf_head_str = '''
 
 html_pdf_tail_str = '''
     </body>
+</html>
+'''
+######### 1 image 6 questions styles
+html_head_1_img_6_q_str = '''
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Question and Answers</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 5px;
+            font-family: sans-serif;
+            font-size: 2em;
+            flex-direction: column;
+        }
+        .header {margin-bottom:10px;font-size:20px;text-align:center;}
+
+        table tr td {
+            padding: 15px;
+        }
+
+        .question {
+            margin-bottom: 10px;
+            line-height: 1.4;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        .answer, .explanation {
+            margin-bottom: 5px;
+            text-align: left;
+        }
+
+        .answer label {
+            display: block;
+            line-height: 1.4;
+            padding: 6px;
+        }
+        .footer {margin-top:10px;font-size:12px;text-align:center;}
+    </style>
+</head>
+<body>
+'''
+
+html_tail_1_img_6_q_str = '''
+        </body>
 </html>
 '''
