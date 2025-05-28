@@ -4,7 +4,6 @@
 *.pyc
 *.csv
 *.png
-*.html
 *.pdf
 *.mp3
 *.DS_Store

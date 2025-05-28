@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Question and Answers</title>
+    <style>
+        @page {
+            size: a4;
+            @frame content_frame {
+                left: 15pt;
+                width: 590pt;
+                top: 15pt;
+                height: 800pt;
+            }
+        }
+
+        body {
+            display: flex;
+            min-height: 100vh;
+            margin: 0;
+            font-family: sans-serif;
+            font-size: 1.2em;
+            flex-direction: column;
+        }
+
+        .container {
+            padding: 20px;
+            text-align: center;
+        }
+
+        .question {
+            margin-top: 6px;
+            margin-bottom: 3px;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        .answer, .explanation {
+            text-align: left;
+        }
+
+        .answer label {
+            display: block;
+            padding: 2px;
+        }
+
+        .answer label.correct {
+            color: green;
+            font-weight: bold;
+        }
+
+        .explanation {
+            display: none;
+        }
+
+        .explanation label {
+            font-style: italic;
+        }
+
+        .explanation.show {
+            display:block;
+        }
+
+        .explanation.show .correct{
+            color: green;
+            font-weight: bold;
+        }
+        .copyright {
+            font-size: 0.5em;
+            margin-top:50px;
+            bottom: 5px;
+        }
+        .checkout {
+            margin-top:50px;
+            bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div><strong>EXPLANATIONS</strong></div>
+        <div class="question">12) Your company's e-commerce platform is experiencing a significant increase in traffic due to a holiday sale.</div>
+        <div class="answers">
+            <div class="explanation show">
+                <label class="correct">A. Use bucket policies allowing access only from specific IP addresses.</label>
+            </div>
+            <div class="explanation show">
+                <label>B. Use access control lists (ACLs) allowing access to specific users within the account.</label>
+            </div>
+        </div>
+
+        <div class="checkout">Check out more questions <a href="https://www.udemy.com/course/aws-certified-solutions-architect-associate-practice-exams-iq/">https://www.udemy.com/course/aws-certified-solutions-architect-associate-practice-exams-iq/</a></div>
+    </div>
+    <div class="container">
+        <div class="question">12) Your company's e-commerce platform is experiencing a significant increase in traffic due to a holiday sale.</div>
+        <div class="answers">
+            <div class="answer">
+                <label>A. Use bucket policies allowing access only from specific IP addresses.</label>
+            </div>
+            <div class="explanation">
+                <label>IP restrictions are less flexible and less efficient.</label>
+            </div>
+            <div class="answer">
+                <label>B. Use access control lists (ACLs) allowing access to specific users within the account.</label>
+            </div>
+            <div class="explanation">
+                <label>ACLs are less granular than IAM policies and less suited for managing access to resources across accounts.</label>
+            </div>
+            <div class="answer">
+                <label>C. Use IAM policies to grant access to the S3 bucket only to users and roles within the specified AWS account.</label>
+            </div>
+            <div class="explanation">
+                <label>IAM policies provide the most granular control and efficient way to manage access based on AWS identities.</label>
+            </div>
+            <div class="answer">
+                <label>D. Make the bucket public and trust that only authorized users will access it.</label>
+            </div>
+            <div class="explanation">
+                <label>Highly insecure, making data publicly accessible.</label>
+            </div>
+        </div>
+
+        <div class="question">12) Your company's e-commerce platform is experiencing a significant increase in traffic due to a holiday sale.  Which AWS service is MOST effective in handling this temporary surge without impacting the application's performance?</div>
+        <div class="answers">
+            <div class="answer">
+                <label>A. Use bucket policies allowing access only from specific IP addresses.</label>
+            </div>
+            <div class="explanation">
+                <label>IP restrictions are less flexible and less efficient.</label>
+            </div>
+            <div class="answer">
+                <label>B. Use access control lists (ACLs) allowing access to specific users within the account.</label>
+            </div>
+            <div class="explanation">
+                <label>ACLs are less granular than IAM policies and less suited for managing access to resources across accounts.</label>
+            </div>
+            <div class="answer">
+                <label>C. Use IAM policies to grant access to the S3 bucket only to users and roles within the specified AWS account.</label>
+            </div>
+            <div class="explanation">
+                <label>IAM policies provide the most granular control and efficient way to manage access based on AWS identities.</label>
+            </div>
+            <div class="answer">
+                <label>D. Make the bucket public and trust that only authorized users will access it.</label>
+            </div>
+            <div class="explanation">
+                <label>Highly insecure, making data publicly accessible.</label>
+            </div>
+        </div>
+
+        <div class="question">12) Your company's e-commerce platform is experiencing a significant increase in traffic due to a holiday sale.  Which AWS service is MOST effective in handling this temporary surge without impacting the application's performance?</div>
+        <div class="answers">
+            <div class="answer">
+                <label>A. Use bucket policies allowing access only from specific IP addresses.</label>
+            </div>
+            <div class="explanation">
+                <label>IP restrictions are less flexible and less efficient.</label>
+            </div>
+            <div class="answer">
+                <label>B. Use access control lists (ACLs) allowing access to specific users within the account.</label>
+            </div>
+            <div class="explanation">
+                <label>ACLs are less granular than IAM policies and less suited for managing access to resources across accounts.</label>
+            </div>
+            <div class="answer">
+                <label>C. Use IAM policies to grant access to the S3 bucket only to users and roles within the specified AWS account.</label>
+            </div>
+            <div class="explanation">
+                <label>IAM policies provide the most granular control and efficient way to manage access based on AWS identities.</label>
+            </div>
+            <div class="answer">
+                <label>D. Make the bucket public and trust that only authorized users will access it.</label>
+            </div>
+            <div class="explanation">
+                <label>Highly insecure, making data publicly accessible.</label>
+            </div>
+        </div>
+
+
+        <div class="question">12) Your company's e-commerce platform is experiencing a significant increase in traffic due to a holiday sale.  Which AWS service is MOST effective in handling this temporary surge without impacting the application's performance?</div>
+        <div class="answers">
+            <div class="answer">
+                <label>A. Use bucket policies allowing access only from specific IP addresses.</label>
+            </div>
+            <div class="explanation">
+                <label>IP restrictions are less flexible and less efficient.</label>
+            </div>
+            <div class="answer">
+                <label>B. Use access control lists (ACLs) allowing access to specific users within the account.</label>
+            </div>
+            <div class="explanation">
+                <label>ACLs are less granular than IAM policies and less suited for managing access to resources across accounts.</label>
+            </div>
+            <div class="answer">
+                <label>C. Use IAM policies to grant access to the S3 bucket only to users and roles within the specified AWS account.</label>
+            </div>
+            <div class="explanation">
+                <label>IAM policies provide the most granular control and efficient way to manage access based on AWS identities.</label>
+            </div>
+            <div class="answer">
+                <label>D. Make the bucket public and trust that only authorized users will access it.</label>
+            </div>
+            <div class="explanation">
+                <label>Highly insecure, making data publicly accessible.</label>
+            </div>
+        </div>
+
+        <div class="question">12) An application experiences sporadic high latency spikes.  CloudWatch metrics show no consistent pattern in CPU or memory utilization.  What is the MOST likely cause?</div>
+        <div class="answers">
+            <div class="answer">
+                <label>A. Use bucket policies allowing access only from specific IP addresses.</label>
+            </div>
+            <div class="explanation">
+                <label>IP restrictions are less flexible and less efficient.</label>
+            </div>
+            <div class="answer">
+                <label>B. Use access control lists (ACLs) allowing access to specific users within the account.</label>
+            </div>
+            <div class="explanation">
+                <label>ACLs are less granular than IAM policies and less suited for managing access to resources across accounts.</label>
+            </div>
+            <div class="answer">
+                <label>C. Use IAM policies to grant access to the S3 bucket only to users and roles within the specified AWS account.</label>
+            </div>
+            <div class="explanation">
+                <label>IAM policies provide the most granular control and efficient way to manage access based on AWS identities.</label>
+            </div>
+            <div class="answer">
+                <label>D. Make the bucket public and trust that only authorized users will access it.</label>
+            </div>
+            <div class="explanation">
+                <label>Highly insecure, making data publicly accessible.</label>
+            </div>
+        </div>
+        <div class="copyright">Copyright <a href="https://www.udemy.com/user/martindo/">https://www.udemy.com/user/martindo/</a></div>
+    </div>
+    
+    <pdf:nextpage />
+    <div class="container">
+        <div class="question">12) Your company's e-commerce platform is experiencing a significant increase in traffic due to a holiday sale.  Which AWS service is MOST effective in handling this temporary surge without impacting the application's performance?</div>
+        <div class="answers">
+            <div class="answer">
+                <label>A. Use bucket policies allowing access only from specific IP addresses.</label>
+            </div>
+            <div class="explanation">
+                <label>IP restrictions are less flexible and less efficient.</label>
+            </div>
+            <div class="answer">
+                <label>B. Use access control lists (ACLs) allowing access to specific users within the account.</label>
+            </div>
+            <div class="explanation">
+                <label>ACLs are less granular than IAM policies and less suited for managing access to resources across accounts.</label>
+            </div>
+            <div class="answer">
+                <label>C. Use IAM policies to grant access to the S3 bucket only to users and roles within the specified AWS account.</label>
+            </div>
+            <div class="explanation">
+                <label>IAM policies provide the most granular control and efficient way to manage access based on AWS identities.</label>
+            </div>
+            <div class="answer">
+                <label>D. Make the bucket public and trust that only authorized users will access it.</label>
+            </div>
+            <div class="explanation">
+                <label>Highly insecure, making data publicly accessible.</label>
+            </div>
+        </div>
+
+        <div class="question">12) Your company's e-commerce platform is experiencing a significant increase in traffic due to a holiday sale.  Which AWS service is MOST effective in handling this temporary surge without impacting the application's performance?</div>
+        <div class="answers">
+            <div class="answer">
+                <label>A. Use bucket policies allowing access only from specific IP addresses.</label>
+            </div>
+            <div class="explanation">
+                <label>IP restrictions are less flexible and less efficient.</label>
+            </div>
+            <div class="answer">
+                <label>B. Use access control lists (ACLs) allowing access to specific users within the account.</label>
+            </div>
+            <div class="explanation">
+                <label>ACLs are less granular than IAM policies and less suited for managing access to resources across accounts.</label>
+            </div>
+            <div class="answer">
+                <label>C. Use IAM policies to grant access to the S3 bucket only to users and roles within the specified AWS account.</label>
+            </div>
+            <div class="explanation">
+                <label>IAM policies provide the most granular control and efficient way to manage access based on AWS identities.</label>
+            </div>
+            <div class="answer">
+                <label>D. Make the bucket public and trust that only authorized users will access it.</label>
+            </div>
+            <div class="explanation">
+                <label>Highly insecure, making data publicly accessible.</label>
+            </div>
+        </div>
+
+        <div class="question">12) Your company's e-commerce platform is experiencing a significant increase in traffic due to a holiday sale.  Which AWS service is MOST effective in handling this temporary surge without impacting the application's performance?</div>
+        <div class="answers">
+            <div class="answer">
+                <label>A. Use bucket policies allowing access only from specific IP addresses.</label>
+            </div>
+            <div class="explanation">
+                <label>IP restrictions are less flexible and less efficient.</label>
+            </div>
+            <div class="answer">
+                <label>B. Use access control lists (ACLs) allowing access to specific users within the account.</label>
+            </div>
+            <div class="explanation">
+                <label>ACLs are less granular than IAM policies and less suited for managing access to resources across accounts.</label>
+            </div>
+            <div class="answer">
+                <label>C. Use IAM policies to grant access to the S3 bucket only to users and roles within the specified AWS account.</label>
+            </div>
+            <div class="explanation">
+                <label>IAM policies provide the most granular control and efficient way to manage access based on AWS identities.</label>
+            </div>
+            <div class="answer">
+                <label>D. Make the bucket public and trust that only authorized users will access it.</label>
+            </div>
+            <div class="explanation">
+                <label>Highly insecure, making data publicly accessible.</label>
+            </div>
+        </div>
+
+
+        <div class="question">12) Your company's e-commerce platform is experiencing a significant increase in traffic due to a holiday sale.  Which AWS service is MOST effective in handling this temporary surge without impacting the application's performance?</div>
+        <div class="answers">
+            <div class="answer">
+                <label>A. Use bucket policies allowing access only from specific IP addresses.</label>
+            </div>
+            <div class="explanation">
+                <label>IP restrictions are less flexible and less efficient.</label>
+            </div>
+            <div class="answer">
+                <label>B. Use access control lists (ACLs) allowing access to specific users within the account.</label>
+            </div>
+            <div class="explanation">
+                <label>ACLs are less granular than IAM policies and less suited for managing access to resources across accounts.</label>
+            </div>
+            <div class="answer">
+                <label>C. Use IAM policies to grant access to the S3 bucket only to users and roles within the specified AWS account.</label>
+            </div>
+            <div class="explanation">
+                <label>IAM policies provide the most granular control and efficient way to manage access based on AWS identities.</label>
+            </div>
+            <div class="answer">
+                <label>D. Make the bucket public and trust that only authorized users will access it.</label>
+            </div>
+            <div class="explanation">
+                <label>Highly insecure, making data publicly accessible.</label>
+            </div>
+        </div>
+
+        <div class="question">12) An application experiences sporadic high latency spikes.  CloudWatch metrics show no consistent pattern in CPU or memory utilization.  What is the MOST likely cause?</div>
+        <div class="answers">
+            <div class="answer">
+                <label>A. Use bucket policies allowing access only from specific IP addresses.</label>
+            </div>
+            <div class="explanation">
+                <label>IP restrictions are less flexible and less efficient.</label>
+            </div>
+            <div class="answer">
+                <label>B. Use access control lists (ACLs) allowing access to specific users within the account.</label>
+            </div>
+            <div class="explanation">
+                <label>ACLs are less granular than IAM policies and less suited for managing access to resources across accounts.</label>
+            </div>
+            <div class="answer">
+                <label>C. Use IAM policies to grant access to the S3 bucket only to users and roles within the specified AWS account.</label>
+            </div>
+            <div class="explanation">
+                <label>IAM policies provide the most granular control and efficient way to manage access based on AWS identities.</label>
+            </div>
+            <div class="answer">
+                <label>D. Make the bucket public and trust that only authorized users will access it.</label>
+            </div>
+            <div class="explanation">
+                <label>Highly insecure, making data publicly accessible.</label>
+            </div>
+        </div>
+    </div>
+    <pdf:nextpage />
+    <div class="container">
+        <div class="question">12) Your company's e-commerce platform is experiencing a significant increase in traffic due to a holiday sale.  Which AWS service is MOST effective in handling this temporary surge without impacting the application's performance?</div>
+        <div class="answers">
+            <div class="answer">
+                <label>A. Use bucket policies allowing access only from specific IP addresses.</label>
+            </div>
+            <div class="explanation">
+                <label>IP restrictions are less flexible and less efficient.</label>
+            </div>
+            <div class="answer">
+                <label>B. Use access control lists (ACLs) allowing access to specific users within the account.</label>
+            </div>
+            <div class="explanation">
+                <label>ACLs are less granular than IAM policies and less suited for managing access to resources across accounts.</label>
+            </div>
+            <div class="answer">
+                <label>C. Use IAM policies to grant access to the S3 bucket only to users and roles within the specified AWS account.</label>
+            </div>
+            <div class="explanation">
+                <label>IAM policies provide the most granular control and efficient way to manage access based on AWS identities.</label>
+            </div>
+            <div class="answer">
+                <label>D. Make the bucket public and trust that only authorized users will access it.</label>
+            </div>
+            <div class="explanation">
+                <label>Highly insecure, making data publicly accessible.</label>
+            </div>
+        </div>
+
+        <div class="question">12) Your company's e-commerce platform is experiencing a significant increase in traffic due to a holiday sale.  Which AWS service is MOST effective in handling this temporary surge without impacting the application's performance?</div>
+        <div class="answers">
+            <div class="answer">
+                <label>A. Use bucket policies allowing access only from specific IP addresses.</label>
+            </div>
+            <div class="explanation">
+                <label>IP restrictions are less flexible and less efficient.</label>
+            </div>
+            <div class="answer">
+                <label>B. Use access control lists (ACLs) allowing access to specific users within the account.</label>
+            </div>
+            <div class="explanation">
+                <label>ACLs are less granular than IAM policies and less suited for managing access to resources across accounts.</label>
+            </div>
+            <div class="answer">
+                <label>C. Use IAM policies to grant access to the S3 bucket only to users and roles within the specified AWS account.</label>
+            </div>
+            <div class="explanation">
+                <label>IAM policies provide the most granular control and efficient way to manage access based on AWS identities.</label>
+            </div>
+            <div class="answer">
+                <label>D. Make the bucket public and trust that only authorized users will access it.</label>
+            </div>
+            <div class="explanation">
+                <label>Highly insecure, making data publicly accessible.</label>
+            </div>
+        </div>
+
+        <div class="question">12) Your company's e-commerce platform is experiencing a significant increase in traffic due to a holiday sale.  Which AWS service is MOST effective in handling this temporary surge without impacting the application's performance?</div>
+        <div class="answers">
+            <div class="answer">
+                <label>A. Use bucket policies allowing access only from specific IP addresses.</label>
+            </div>
+            <div class="explanation">
+                <label>IP restrictions are less flexible and less efficient.</label>
+            </div>
+            <div class="answer">
+                <label>B. Use access control lists (ACLs) allowing access to specific users within the account.</label>
+            </div>
+            <div class="explanation">
+                <label>ACLs are less granular than IAM policies and less suited for managing access to resources across accounts.</label>
+            </div>
+            <div class="answer">
+                <label>C. Use IAM policies to grant access to the S3 bucket only to users and roles within the specified AWS account.</label>
+            </div>
+            <div class="explanation">
+                <label>IAM policies provide the most granular control and efficient way to manage access based on AWS identities.</label>
+            </div>
+            <div class="answer">
+                <label>D. Make the bucket public and trust that only authorized users will access it.</label>
+            </div>
+            <div class="explanation">
+                <label>Highly insecure, making data publicly accessible.</label>
+            </div>
+        </div>
+
+
+        <div class="question">12) Your company's e-commerce platform is experiencing a significant increase in traffic due to a holiday sale.  Which AWS service is MOST effective in handling this temporary surge without impacting the application's performance?</div>
+        <div class="answers">
+            <div class="answer">
+                <label>A. Use bucket policies allowing access only from specific IP addresses.</label>
+            </div>
+            <div class="explanation">
+                <label>IP restrictions are less flexible and less efficient.</label>
+            </div>
+            <div class="answer">
+                <label>B. Use access control lists (ACLs) allowing access to specific users within the account.</label>
+            </div>
+            <div class="explanation">
+                <label>ACLs are less granular than IAM policies and less suited for managing access to resources across accounts.</label>
+            </div>
+            <div class="answer">
+                <label>C. Use IAM policies to grant access to the S3 bucket only to users and roles within the specified AWS account.</label>
+            </div>
+            <div class="explanation">
+                <label>IAM policies provide the most granular control and efficient way to manage access based on AWS identities.</label>
+            </div>
+            <div class="answer">
+                <label>D. Make the bucket public and trust that only authorized users will access it.</label>
+            </div>
+            <div class="explanation">
+                <label>Highly insecure, making data publicly accessible.</label>
+            </div>
+        </div>
+
+        <div class="question">12) An application experiences sporadic high latency spikes.  CloudWatch metrics show no consistent pattern in CPU or memory utilization.  What is the MOST likely cause?</div>
+        <div class="answers">
+            <div class="answer">
+                <label>A. Use bucket policies allowing access only from specific IP addresses.</label>
+            </div>
+            <div class="explanation">
+                <label>IP restrictions are less flexible and less efficient.</label>
+            </div>
+            <div class="answer">
+                <label>B. Use access control lists (ACLs) allowing access to specific users within the account.</label>
+            </div>
+            <div class="explanation">
+                <label>ACLs are less granular than IAM policies and less suited for managing access to resources across accounts.</label>
+            </div>
+            <div class="answer">
+                <label>C. Use IAM policies to grant access to the S3 bucket only to users and roles within the specified AWS account.</label>
+            </div>
+            <div class="explanation">
+                <label>IAM policies provide the most granular control and efficient way to manage access based on AWS identities.</label>
+            </div>
+            <div class="answer">
+                <label>D. Make the bucket public and trust that only authorized users will access it.</label>
+            </div>
+            <div class="explanation">
+                <label>Highly insecure, making data publicly accessible.</label>
+            </div>
+        </div>
+    </div>
+    <pdf:nextpage />
+    <div class="container">
+        <div class="question">12) Your company's e-commerce platform is experiencing a significant increase in traffic due to a holiday sale.  Which AWS service is MOST effective in handling this temporary surge without impacting the application's performance?</div>
+        <div class="answers">
+            <div class="answer">
+                <label>A. Use bucket policies allowing access only from specific IP addresses.</label>
+            </div>
+            <div class="explanation">
+                <label>IP restrictions are less flexible and less efficient.</label>
+            </div>
+            <div class="answer">
+                <label>B. Use access control lists (ACLs) allowing access to specific users within the account.</label>
+            </div>
+            <div class="explanation">
+                <label>ACLs are less granular than IAM policies and less suited for managing access to resources across accounts.</label>
+            </div>
+            <div class="answer">
+                <label>C. Use IAM policies to grant access to the S3 bucket only to users and roles within the specified AWS account.</label>
+            </div>
+            <div class="explanation">
+                <label>IAM policies provide the most granular control and efficient way to manage access based on AWS identities.</label>
+            </div>
+            <div class="answer">
+                <label>D. Make the bucket public and trust that only authorized users will access it.</label>
+            </div>
+            <div class="explanation">
+                <label>Highly insecure, making data publicly accessible.</label>
+            </div>
+        </div>
+
+        <div class="question">12) Your company's e-commerce platform is experiencing a significant increase in traffic due to a holiday sale.  Which AWS service is MOST effective in handling this temporary surge without impacting the application's performance?</div>
+        <div class="answers">
+            <div class="answer">
+                <label>A. Use bucket policies allowing access only from specific IP addresses.</label>
+            </div>
+            <div class="explanation">
+                <label>IP restrictions are less flexible and less efficient.</label>
+            </div>
+            <div class="answer">
+                <label>B. Use access control lists (ACLs) allowing access to specific users within the account.</label>
+            </div>
+            <div class="explanation">
+                <label>ACLs are less granular than IAM policies and less suited for managing access to resources across accounts.</label>
+            </div>
+            <div class="answer">
+                <label>C. Use IAM policies to grant access to the S3 bucket only to users and roles within the specified AWS account.</label>
+            </div>
+            <div class="explanation">
+                <label>IAM policies provide the most granular control and efficient way to manage access based on AWS identities.</label>
+            </div>
+            <div class="answer">
+                <label>D. Make the bucket public and trust that only authorized users will access it.</label>
+            </div>
+            <div class="explanation">
+                <label>Highly insecure, making data publicly accessible.</label>
+            </div>
+        </div>
+
+        <div class="question">12) Your company's e-commerce platform is experiencing a significant increase in traffic due to a holiday sale.  Which AWS service is MOST effective in handling this temporary surge without impacting the application's performance?</div>
+        <div class="answers">
+            <div class="answer">
+                <label>A. Use bucket policies allowing access only from specific IP addresses.</label>
+            </div>
+            <div class="explanation">
+                <label>IP restrictions are less flexible and less efficient.</label>
+            </div>
+            <div class="answer">
+                <label>B. Use access control lists (ACLs) allowing access to specific users within the account.</label>
+            </div>
+            <div class="explanation">
+                <label>ACLs are less granular than IAM policies and less suited for managing access to resources across accounts.</label>
+            </div>
+            <div class="answer">
+                <label>C. Use IAM policies to grant access to the S3 bucket only to users and roles within the specified AWS account.</label>
+            </div>
+            <div class="explanation">
+                <label>IAM policies provide the most granular control and efficient way to manage access based on AWS identities.</label>
+            </div>
+            <div class="answer">
+                <label>D. Make the bucket public and trust that only authorized users will access it.</label>
+            </div>
+            <div class="explanation">
+                <label>Highly insecure, making data publicly accessible.</label>
+            </div>
+        </div>
+
+
+        <div class="question">12) Your company's e-commerce platform is experiencing a significant increase in traffic due to a holiday sale.  Which AWS service is MOST effective in handling this temporary surge without impacting the application's performance?</div>
+        <div class="answers">
+            <div class="answer">
+                <label>A. Use bucket policies allowing access only from specific IP addresses.</label>
+            </div>
+            <div class="explanation">
+                <label>IP restrictions are less flexible and less efficient.</label>
+            </div>
+            <div class="answer">
+                <label>B. Use access control lists (ACLs) allowing access to specific users within the account.</label>
+            </div>
+            <div class="explanation">
+                <label>ACLs are less granular than IAM policies and less suited for managing access to resources across accounts.</label>
+            </div>
+            <div class="answer">
+                <label>C. Use IAM policies to grant access to the S3 bucket only to users and roles within the specified AWS account.</label>
+            </div>
+            <div class="explanation">
+                <label>IAM policies provide the most granular control and efficient way to manage access based on AWS identities.</label>
+            </div>
+            <div class="answer">
+                <label>D. Make the bucket public and trust that only authorized users will access it.</label>
+            </div>
+            <div class="explanation">
+                <label>Highly insecure, making data publicly accessible.</label>
+            </div>
+        </div>
+
+        <div class="question">12) An application experiences sporadic high latency spikes.  CloudWatch metrics show no consistent pattern in CPU or memory utilization.  What is the MOST likely cause?</div>
+        <div class="answers">
+            <div class="answer">
+                <label>A. Use bucket policies allowing access only from specific IP addresses.</label>
+            </div>
+            <div class="explanation">
+                <label>IP restrictions are less flexible and less efficient.</label>
+            </div>
+            <div class="answer">
+                <label>B. Use access control lists (ACLs) allowing access to specific users within the account.</label>
+            </div>
+            <div class="explanation">
+                <label>ACLs are less granular than IAM policies and less suited for managing access to resources across accounts.</label>
+            </div>
+            <div class="answer">
+                <label>C. Use IAM policies to grant access to the S3 bucket only to users and roles within the specified AWS account.</label>
+            </div>
+            <div class="explanation">
+                <label>IAM policies provide the most granular control and efficient way to manage access based on AWS identities.</label>
+            </div>
+            <div class="answer">
+                <label>D. Make the bucket public and trust that only authorized users will access it.</label>
+            </div>
+            <div class="explanation">
+                <label>Highly insecure, making data publicly accessible.</label>
+            </div>
+        </div>
+    </div>
+    <pdf:nextpage />
+    <div class="container">
+        <div class="question">12) Your company's e-commerce platform is experiencing a significant increase in traffic due to a holiday sale.  Which AWS service is MOST effective in handling this temporary surge without impacting the application's performance?</div>
+        <div class="answers">
+            <div class="answer">
+                <label>A. Use bucket policies allowing access only from specific IP addresses.</label>
+            </div>
+            <div class="explanation">
+                <label>IP restrictions are less flexible and less efficient.</label>
+            </div>
+            <div class="answer">
+                <label>B. Use access control lists (ACLs) allowing access to specific users within the account.</label>
+            </div>
+            <div class="explanation">
+                <label>ACLs are less granular than IAM policies and less suited for managing access to resources across accounts.</label>
+            </div>
+            <div class="answer">
+                <label>C. Use IAM policies to grant access to the S3 bucket only to users and roles within the specified AWS account.</label>
+            </div>
+            <div class="explanation">
+                <label>IAM policies provide the most granular control and efficient way to manage access based on AWS identities.</label>
+            </div>
+            <div class="answer">
+                <label>D. Make the bucket public and trust that only authorized users will access it.</label>
+            </div>
+            <div class="explanation">
+                <label>Highly insecure, making data publicly accessible.</label>
+            </div>
+        </div>
+
+        <div class="question">12) Your company's e-commerce platform is experiencing a significant increase in traffic due to a holiday sale.  Which AWS service is MOST effective in handling this temporary surge without impacting the application's performance?</div>
+        <div class="answers">
+            <div class="answer">
+                <label>A. Use bucket policies allowing access only from specific IP addresses.</label>
+            </div>
+            <div class="explanation">
+                <label>IP restrictions are less flexible and less efficient.</label>
+            </div>
+            <div class="answer">
+                <label>B. Use access control lists (ACLs) allowing access to specific users within the account.</label>
+            </div>
+            <div class="explanation">
+                <label>ACLs are less granular than IAM policies and less suited for managing access to resources across accounts.</label>
+            </div>
+            <div class="answer">
+                <label>C. Use IAM policies to grant access to the S3 bucket only to users and roles within the specified AWS account.</label>
+            </div>
+            <div class="explanation">
+                <label>IAM policies provide the most granular control and efficient way to manage access based on AWS identities.</label>
+            </div>
+            <div class="answer">
+                <label>D. Make the bucket public and trust that only authorized users will access it.</label>
+            </div>
+            <div class="explanation">
+                <label>Highly insecure, making data publicly accessible.</label>
+            </div>
+        </div>
+
+        <div class="question">12) Your company's e-commerce platform is experiencing a significant increase in traffic due to a holiday sale.  Which AWS service is MOST effective in handling this temporary surge without impacting the application's performance?</div>
+        <div class="answers">
+            <div class="answer">
+                <label>A. Use bucket policies allowing access only from specific IP addresses.</label>
+            </div>
+            <div class="explanation">
+                <label>IP restrictions are less flexible and less efficient.</label>
+            </div>
+            <div class="answer">
+                <label>B. Use access control lists (ACLs) allowing access to specific users within the account.</label>
+            </div>
+            <div class="explanation">
+                <label>ACLs are less granular than IAM policies and less suited for managing access to resources across accounts.</label>
+            </div>
+            <div class="answer">
+                <label>C. Use IAM policies to grant access to the S3 bucket only to users and roles within the specified AWS account.</label>
+            </div>
+            <div class="explanation">
+                <label>IAM policies provide the most granular control and efficient way to manage access based on AWS identities.</label>
+            </div>
+            <div class="answer">
+                <label>D. Make the bucket public and trust that only authorized users will access it.</label>
+            </div>
+            <div class="explanation">
+                <label>Highly insecure, making data publicly accessible.</label>
+            </div>
+        </div>
+
+
+        <div class="question">12) Your company's e-commerce platform is experiencing a significant increase in traffic due to a holiday sale.  Which AWS service is MOST effective in handling this temporary surge without impacting the application's performance?</div>
+        <div class="answers">
+            <div class="answer">
+                <label>A. Use bucket policies allowing access only from specific IP addresses.</label>
+            </div>
+            <div class="explanation">
+                <label>IP restrictions are less flexible and less efficient.</label>
+            </div>
+            <div class="answer">
+                <label>B. Use access control lists (ACLs) allowing access to specific users within the account.</label>
+            </div>
+            <div class="explanation">
+                <label>ACLs are less granular than IAM policies and less suited for managing access to resources across accounts.</label>
+            </div>
+            <div class="answer">
+                <label>C. Use IAM policies to grant access to the S3 bucket only to users and roles within the specified AWS account.</label>
+            </div>
+            <div class="explanation">
+                <label>IAM policies provide the most granular control and efficient way to manage access based on AWS identities.</label>
+            </div>
+            <div class="answer">
+                <label>D. Make the bucket public and trust that only authorized users will access it.</label>
+            </div>
+            <div class="explanation">
+                <label>Highly insecure, making data publicly accessible.</label>
+            </div>
+        </div>
+
+        <div class="question">12) An application experiences sporadic high latency spikes.  CloudWatch metrics show no consistent pattern in CPU or memory utilization.  What is the MOST likely cause?</div>
+        <div class="answers">
+            <div class="answer">
+                <label>A. Use bucket policies allowing access only from specific IP addresses.</label>
+            </div>
+            <div class="explanation">
+                <label>IP restrictions are less flexible and less efficient.</label>
+            </div>
+            <div class="answer">
+                <label>B. Use access control lists (ACLs) allowing access to specific users within the account.</label>
+            </div>
+            <div class="explanation">
+                <label>ACLs are less granular than IAM policies and less suited for managing access to resources across accounts.</label>
+            </div>
+            <div class="answer">
+                <label>C. Use IAM policies to grant access to the S3 bucket only to users and roles within the specified AWS account.</label>
+            </div>
+            <div class="explanation">
+                <label>IAM policies provide the most granular control and efficient way to manage access based on AWS identities.</label>
+            </div>
+            <div class="answer">
+                <label>D. Make the bucket public and trust that only authorized users will access it.</label>
+            </div>
+            <div class="explanation">
+                <label>Highly insecure, making data publicly accessible.</label>
+            </div>
+        </div>
+    </div>
+    
+    
+</body>
+</html>

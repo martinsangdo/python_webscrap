@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Question and Answers</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: sans-serif;
+            font-size: 2em;
+            flex-direction: column;
+        }
+
+        .container {
+            padding: 30px;
+            text-align: center;
+        }
+
+        .question {
+            margin-bottom: 20px;
+            line-height: 1.4;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        .answer, .explanation {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        .answer label {
+            display: block;
+            line-height: 1.4;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .answer label.correct {
+            color: green;
+            font-weight: bold;
+        }
+
+        .explanation {
+            display: none;
+        }
+
+        .explanation label {
+            font-size: 0.7em;
+            font-style: italic;
+        }
+
+        .explanation.show {
+            display:block;
+        }
+
+        .footer {
+            
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="question">12) You need to restrict access to an Amazon S3 bucket to only users within a specific AWS account. What's the MOST efficient method?</div>
+        <div class="answers">
+            <div class="answer">
+                <label>A. Use bucket policies allowing access only from specific IP addresses.</label>
+            </div>
+            <div class="explanation">
+                <label>IP restrictions are less flexible and less efficient.</label>
+            </div>
+            <div class="answer">
+                <label>B. Use access control lists (ACLs) allowing access to specific users within the account.</label>
+            </div>
+            <div class="explanation">
+                <label>ACLs are less granular than IAM policies and less suited for managing access to resources across accounts.</label>
+            </div>
+            <div class="answer">
+                <label>C. Use IAM policies to grant access to the S3 bucket only to users and roles within the specified AWS account.</label>
+            </div>
+            <div class="explanation">
+                <label>IAM policies provide the most granular control and efficient way to manage access based on AWS identities.</label>
+            </div>
+            <div class="answer">
+                <label>D. Make the bucket public and trust that only authorized users will access it.</label>
+            </div>
+            <div class="explanation">
+                <label>Highly insecure, making data publicly accessible.</label>
+            </div>
+            <div class="answer">
+                <label>D. Make the bucket public and trust that only authorized users will access it.</label>
+            </div>
+            <div class="explanation">
+                <label>Highly insecure, making data publicly accessible.</label>
+            </div>
+        </div>
+        <div class="footer">https://www.udemy.com/user/martindo</div>
+    </div>
+    
+</body>
+</html>
