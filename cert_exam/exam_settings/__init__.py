@@ -26,6 +26,17 @@ def generate_image_portrait(str_html, folder_path, filename):
         )
     except Exception as e:
         print(e)
+
+def generate_image_portrait_from_file(html_filename, folder_path, filename):
+    hti.output_path = folder_path
+    try:
+        hti.screenshot(
+            html_file=html_filename,
+            save_as=filename,
+            size=(1080, 1920)
+        )
+    except Exception as e:
+        print(e)
 ########## 1 page 1 image styles
 html_head_str = '''
 <!DOCTYPE html>
