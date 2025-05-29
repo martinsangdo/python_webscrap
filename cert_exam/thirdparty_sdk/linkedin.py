@@ -95,7 +95,64 @@ class LinkedIn:
         except Exception as e:
             print(e)   
             return 'failed'
-    #upload video and share the post
+    #
+    def get_upload_link_img(self, owner_id):
+        url = self.li_uri + 'v2/assets?action=registerUpload'
+        payload = {
+            "registerUploadRequest": {
+                "recipes": [
+                    "urn:li:digitalmediaRecipe:feedshare-image"
+                ],
+                "owner": owner_id,
+                "serviceRelationships": [
+                    {
+                        "relationshipType": "OWNER",
+                        "identifier": "urn:li:userGeneratedContent"
+                    }
+                ]
+            }
+        }
+        try:
+            detail = requests.post(url, json=payload, headers=self.li_headers)
+            return detail.json()
+        except Exception as e:
+            print(e)
+            return {'error': e}
+     #upload image to LI
+    def li_upload_img_2_page(self, owner_id, img_path):
+        upload_detail = self.get_upload_link_img(owner_id)
+        if 'error' in upload_detail:
+            return upload_detail
+        print(upload_detail)
+        uploadUrl = upload_detail['value']['uploadMechanism']['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest']['uploadUrl']
+        #upload the image https://learn.microsoft.com/en-us/linkedin/consumer/integrations/self-serve/share-on-linkedin#upload-image-or-video-binary-file
+        try:
+            with open(img_path, 'rb') as file:
+                files = {'file': (file.name, file, 'image/jpg')}
+                headers = {
+                    'Authorization': self.li_access_token,
+                    'LinkedIn-Version': self.li_version
+                }
+
+                response = requests.post(uploadUrl, files=files, headers=headers)
+                print("Status Code:", response.status_code)
+                print("Headers:", response.headers)
+                print("Response Body:", response.text)
+
+                if response.status_code >= 200 and response.status_code < 300:
+                    print("File uploaded successfully!")
+                    time.sleep(5)   #delay 5 seconds for image going through LI system
+                    return {'id': upload_detail['value']['asset']}
+                else:
+                    print("File upload failed.")
+                    return {'error': 'Unknown error'}
+        except FileNotFoundError:
+            print(f"Error: File not found at path: {img_path}")
+            return {'error': 'File not found'} 
+        except requests.exceptions.RequestException as e:
+            print(f"Error during upload: {e}")
+            return {'error': 'Unknown error'}
+    #upload video and share the post (why not show in Page even shared successfully)
     def upload_and_share_video(self, cert_metadata, question_list, video_path, file_size):
         page_id = cert_metadata['linkedin_page_id']
         page_id = '106416695' #testing
@@ -106,3 +163,57 @@ class LinkedIn:
         #share this video to LI
         decription = cert_metadata['name'] + '\n' + '\n'.join(question_list)
         self.share_video_2_page(owner_id, videoId, decription)
+    #create a Image page post
+    def reshare_img(self, owner_id, li_img_id, description):
+        print('li_img_id: ' + str(li_img_id))
+        payload = {
+            "author": owner_id,
+            "lifecycleState": "PUBLISHED",
+            "specificContent": {
+                "com.linkedin.ugc.ShareContent": {
+                    "shareCommentary": {
+                        "text": description
+                    },
+                    "shareMediaCategory": "IMAGE",
+                    "media": [
+                        {
+                            "status": "READY",
+                            "media": li_img_id
+                        }
+                    ]
+                }
+            },
+            "visibility": {
+                "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"
+            }
+        }
+        try:
+            response = requests.post(self.li_uri + 'v2/ugcPosts', json=payload, headers=self.li_headers)
+            print("Status Code:", response.status_code)
+            print("Headers:", response.headers)
+            print("Response Body:", response.text)
+            
+            if response.status_code >= 200 and response.status_code < 300:
+                print("The image was shared successfully!")
+                return 'ok'
+            else:
+                print("The image was shared failed.")
+                return 'failed'
+        except Exception as e:
+            print(e)   
+            return 'failed'
+    #upload video and share the post
+    def upload_and_share_img(self, cert_metadata, decription, img_path):
+        page_id = cert_metadata['linkedin_page_id']
+        page_id = '106416695' #testing
+        owner_id = "urn:li:organization:" + page_id
+        result_upload = self.li_upload_img_2_page(owner_id, img_path)
+        if 'error' in result_upload:
+            return False
+        #share this video to LI
+        img_id = result_upload['id']
+        result = self.reshare_img(owner_id, img_id, decription)
+        print(result)
+        if result == 'ok':
+            return True
+        return False
