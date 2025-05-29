@@ -13,8 +13,11 @@ def generate_image(str_html, folder_path, filename):
             save_as=filename,
             size=(1920, 1080),
         )
+        print('Done generating 1 page image')
+        return True
     except Exception as e:
         print(e)
+        return False
 
 def generate_image_portrait(str_html, folder_path, filename):
     hti.output_path = folder_path
@@ -24,8 +27,11 @@ def generate_image_portrait(str_html, folder_path, filename):
             save_as=filename,
             size=(1080, 1920)
         )
+        print('Done generating 1 page image')
+        return True
     except Exception as e:
         print(e)
+        return False
 
 def generate_image_portrait_from_file(html_filename, folder_path, filename):
     hti.output_path = folder_path
@@ -35,8 +41,11 @@ def generate_image_portrait_from_file(html_filename, folder_path, filename):
             save_as=filename,
             size=(1080, 1920)
         )
+        print('Done generating 1 page image')
+        return True
     except Exception as e:
         print(e)
+        return False
 ########## 1 page 1 image styles
 html_head_str = '''
 <!DOCTYPE html>
