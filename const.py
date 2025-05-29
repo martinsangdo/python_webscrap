@@ -4,6 +4,7 @@ import requests
 import re
 import json
 from datetime import datetime
+import os
 
 #constant
 PART='contentDetails,snippet'
@@ -135,3 +136,15 @@ def get_current_date_yyyymmdd():
   """
   now = datetime.now()
   return now.strftime("%Y%m%d")
+
+def get_file_size(file_path):
+    # print(f"Current Working Directory: {os.getcwd()}")
+    try:
+        size_in_bytes = os.path.getsize(file_path)
+        return size_in_bytes
+    except FileNotFoundError:
+        print(f"Error: File not found at '{file_path}'")
+        return 0
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        return 0
