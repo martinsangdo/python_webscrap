@@ -282,7 +282,7 @@ html_head_1_img_3_q_str = '''
         }
 
         .container {
-            padding: 30px;
+            padding: 40px;
             text-align: center;
         }
 
@@ -306,7 +306,7 @@ html_head_1_img_3_q_str = '''
 
         .footer {
             margin-top:20px;
-            font-size: 0.8em;
+            font-size: 0.9em;
         }
     </style>
 </head>
@@ -315,7 +315,7 @@ html_head_1_img_3_q_str = '''
 
 html_tail_1_img_3_q_str = '''
         <div class="header">---</div>
-        <div class="footer">Discover other certificates via this link: <a href="https://sites.google.com/view/tech-certificates">https://sites.google.com/view/tech-certificates</a></div>
+        <div class="footer">Discover more <strong>questions</strong> and <strong>certificates</strong> via this link: <a href="https://sites.google.com/view/tech-certificates">https://sites.google.com/view/tech-certificates</a></div>
     </body>
 </html>
 '''
