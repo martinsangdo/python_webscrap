@@ -254,3 +254,68 @@ html_tail_1_img_6_q_str = '''
         </body>
 </html>
 '''
+######### image with 3 questions
+html_head_1_img_3_q_str = '''
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Question and Answers</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: sans-serif;
+            font-size: 1.6em;
+            flex-direction: column;
+        }
+
+        .header {
+            margin-top:20px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 2em;
+        }
+
+        .container {
+            padding: 30px;
+            text-align: center;
+        }
+
+        .question {
+            margin-bottom: 20px;
+            line-height: 1.4;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        .answer {
+            margin-bottom: 5px;
+            text-align: left;
+        }
+
+        .answer label {
+            display: block;
+            line-height: 1.4;
+            padding: 8px;
+        }
+
+        .footer {
+            margin-top:20px;
+            font-size: 0.8em;
+        }
+    </style>
+</head>
+<body>
+'''
+
+html_tail_1_img_3_q_str = '''
+        <div class="header">---</div>
+        <div class="footer">Discover other certificates via this link: <a href="https://sites.google.com/view/tech-certificates">https://sites.google.com/view/tech-certificates</a></div>
+    </body>
+</html>
+'''
