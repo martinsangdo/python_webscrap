@@ -16,7 +16,7 @@ def get_current_timestamp_milliseconds():
   return int(time.time() * 1000)
 
 # %%
-load_dotenv() 
+load_dotenv(override=True) 
 LI_URI = os.environ['LI_URI']
 LI_REST_URI = os.environ['LI_REST_URI']
 LI_VERSION = os.environ['LI_VERSION']

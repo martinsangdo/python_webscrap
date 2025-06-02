@@ -1,5 +1,6 @@
 import requests
 import time
+import json
 #use this class to communicate with LI APIs
 class LinkedIn:
     
@@ -112,6 +113,7 @@ class LinkedIn:
                 ]
             }
         }
+        # print(self.li_headers)
         try:
             detail = requests.post(url, json=payload, headers=self.li_headers)
             return detail.json()
@@ -123,7 +125,7 @@ class LinkedIn:
         upload_detail = self.get_upload_link_img(owner_id)
         if 'error' in upload_detail:
             return upload_detail
-        print(upload_detail)
+        # print(upload_detail)
         uploadUrl = upload_detail['value']['uploadMechanism']['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest']['uploadUrl']
         #upload the image https://learn.microsoft.com/en-us/linkedin/consumer/integrations/self-serve/share-on-linkedin#upload-image-or-video-binary-file
         try:
@@ -155,7 +157,7 @@ class LinkedIn:
     #upload video and share the post (why not show in Page even shared successfully)
     def upload_and_share_video(self, cert_metadata, question_list, video_path, file_size):
         page_id = cert_metadata['linkedin_page_id']
-        page_id = '106416695' #testing
+        # page_id = '106416695' #testing
         owner_id = "urn:li:organization:" + page_id
         result_upload, videoId = self.li_upload_video_2_page(owner_id, video_path, file_size)
         if result_upload == 'failed':
@@ -165,7 +167,6 @@ class LinkedIn:
         self.share_video_2_page(owner_id, videoId, decription)
     #create a Image page post
     def reshare_img(self, owner_id, li_img_id, description):
-        print('li_img_id: ' + str(li_img_id))
         payload = {
             "author": owner_id,
             "lifecycleState": "PUBLISHED",
@@ -192,28 +193,57 @@ class LinkedIn:
             print("Status Code:", response.status_code)
             print("Headers:", response.headers)
             print("Response Body:", response.text)
-            
+
             if response.status_code >= 200 and response.status_code < 300:
                 print("The image was shared successfully!")
-                return 'ok'
+                return response.text    #{"id":"urn:li:share:7335206641044258816"}
             else:
                 print("The image was shared failed.")
                 return 'failed'
         except Exception as e:
             print(e)   
             return 'failed'
+    #create a comment
+    def create_a_comment(self, owner_id, post_id, comment):
+        payload = {
+            "actor": owner_id,  # The entity making the comment (your page)
+            "object": post_id,    # The post being commented on
+            "message": {
+                "text": comment   # The content of the comment
+            }
+        }
+        try:
+            # POST https://api.linkedin.com/rest/socialActions/{shareUrn|ugcPostUrn|commentUrn}/comments
+            response = requests.post(self.li_rest_uri + 'socialActions/'+post_id.replace(':', '%3A')+'/comments', json=payload, headers=self.li_headers)
+            print("Status Code:", response.status_code)
+            print("Headers:", response.headers)
+            print("Response Body:", response.text)
+
+            if response.status_code >= 200 and response.status_code < 300:
+                return response.text
+            else:
+                return 'failed'
+        except Exception as e:
+            print(e)   
+            return 'failed'
     #upload video and share the post
-    def upload_and_share_img(self, cert_metadata, decription, img_path):
+    def upload_and_share_img(self, cert_metadata, decription_str, answers_str, img_path):
         page_id = cert_metadata['linkedin_page_id']
-        page_id = '106416695' #testing
         owner_id = "urn:li:organization:" + page_id
         result_upload = self.li_upload_img_2_page(owner_id, img_path)
         if 'error' in result_upload:
             return False
         #share this video to LI
         img_id = result_upload['id']
-        result = self.reshare_img(owner_id, img_id, decription)
+        result = self.reshare_img(owner_id, img_id, decription_str)
         print(result)
-        if result == 'ok':
-            return True
-        return False
+        if result == 'failed':
+            return False
+        #comment the answers ---> Permission error: Not enough permissions to access
+        # data = json.loads(result)
+        # post_id = data['id']
+        # result_comment = self.create_a_comment(owner_id, post_id, answers_str)
+        # print('result_comment', result_comment)
+        #
+        return True
+        
