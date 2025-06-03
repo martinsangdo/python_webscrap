@@ -125,7 +125,9 @@ class LinkedIn:
         upload_detail = self.get_upload_link_img(owner_id)
         if 'error' in upload_detail:
             return upload_detail
-        # print(upload_detail)
+        if 'value' not in upload_detail:
+            print(upload_detail)
+            return upload_detail
         uploadUrl = upload_detail['value']['uploadMechanism']['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest']['uploadUrl']
         #upload the image https://learn.microsoft.com/en-us/linkedin/consumer/integrations/self-serve/share-on-linkedin#upload-image-or-video-binary-file
         try:
