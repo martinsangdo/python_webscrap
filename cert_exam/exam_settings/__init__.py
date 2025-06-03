@@ -46,6 +46,35 @@ def generate_image_portrait_from_file(html_filename, folder_path, filename):
     except Exception as e:
         print(e)
         return False
+    
+def get_cert_metadata(db, cert_symbol):
+    meta_collection = db['tb_cert_metadata']
+    #get metadata of the certificate
+    cert_metadata = meta_collection.find_one({'symbol': cert_symbol})
+    return cert_metadata
+
+def query_random_questions(db, num_of_questions, channel, cert_metadata):
+    #query random questions
+    condition = {'type': 'multiple-choice', 'exported': {'$ne': 1}} #not in test course
+    condition[channel] = None   #never posted in this channel
+    pipeline = [
+                {"$match": condition},
+                {"$sample": {"size": num_of_questions}} #randomly documents
+            ]
+    collection = db[cert_metadata['collection_name']]
+    random_documents = list(collection.aggregate(pipeline))
+    if len(random_documents) < num_of_questions:
+        print('Not enough questions to export')
+        return []
+    return random_documents
+
+def update_questions_posted(db, cert_metadata, channel, today_yyyymmdd, docs):
+    collection = db[cert_metadata['collection_name']]
+    for doc in docs:
+        #indicate that this question is shared in this channel at this date
+        collection.update_one({'uuid': doc['uuid']}, {'$set':{channel: today_yyyymmdd}})
+
+
 ########## 1 page 1 image styles
 html_head_str = '''
 <!DOCTYPE html>
@@ -70,6 +99,10 @@ html_head_str = '''
             text-align: center;
         }
 
+        .container .div_explan {
+            font-size: 1em;
+        }
+
         .question {
             margin-bottom: 20px;
             line-height: 1.4;
@@ -91,6 +124,10 @@ html_head_str = '''
         .answer label.correct {
             color: green;
             font-weight: bold;
+        }
+
+        .container .div_explan .answer label {
+            line-height: 1.0;
         }
 
         .explanation {
@@ -328,3 +365,79 @@ html_tail_1_img_3_q_str = '''
     </body>
 </html>
 '''
+##########
+def index_to_string(index):
+  if 1 <= index <= 20:
+    return f"{index:02d}"
+  else:
+    return ""
+#1 image 1 question
+def generate_images(today_yyyymmdd, cert_metadata, documents):
+    index = 1
+    for doc in documents:
+        str_index = str(index) + ') '
+        #question first
+        html_question = '<div class="question">'+str_index + doc['question']+'</div>'
+        html_answers_start = '<div class="answers">'
+        html_answers_end = '</div>'
+        #First images: options without explanations
+        for key in doc['options'].keys():
+            html_answers_start += f'''
+                <div class="answer">
+                    <label>{key}. {doc['options'][key]}</label>
+                </div>
+                <div class="explanation">
+                    <label>{key}. {doc['explanation'][key]}</label>
+                </div>'''
+        #1 doc 1 image
+        generate_image(html_head_str + html_question + html_answers_start + html_answers_end + html_tail_str, cert_metadata['img_folder_path']+"/"+today_yyyymmdd, index_to_string(index) + '.png')
+        #Second images: options with explanations
+        html_answers_start = '<div class="answers">'
+        for key in doc['options'].keys():
+            correct_class = ''
+            if doc['answer'] == key:
+                correct_class = ' correct'
+            html_answers_start += f'''
+                <div class="answer">
+                    <label class="{correct_class}">{key}. {doc['options'][key]}</label>
+                </div>
+                <div class="explanation show">
+                    <label>{doc['explanation'][key]}</label>
+                </div>'''
+        generate_image(html_head_str + '<div class="div_explan">' + html_question + html_answers_start + html_answers_end + '</div>' + html_tail_str, cert_metadata['img_folder_path']+"/"+today_yyyymmdd, '_'+index_to_string(index) + '_explain.png')
+        #
+        index += 1
+
+####
+def generate_1_img_multiple_questions(random_documents, cert_metadata, today_yyyymmdd):
+    question_index = 1
+    document_html = []
+    document_html.append(html_head_1_img_3_q_str)
+    #1. add header
+    document_html.append('<div class="header">'+cert_metadata['name']+'</div>')
+    #2. add questions
+    for doc in random_documents:
+        container_html = []
+        container_html.append('<div class="container">')
+        str_index = str(question_index) + ') '
+        #question first
+        container_html.append('<div class="question">'+str_index + doc['question']+'</div>')
+        #2.1 add answers
+        container_html.append('<div class="answers">')
+        for key in doc['options'].keys():
+            container_html.append( f'''
+                    <div class="answer">
+                        <label>{key}. {doc['options'][key]}</label>
+                    </div>''')
+        container_html.append('</div>') #end list of answers
+        container_html.append('</div>') #end 1 container
+        document_html.append(''.join(container_html))
+        question_index += 1
+    #add footer (optional because image/video cannot click on the link)
+    # document_html.append('<div class="footer">Check out more questions via <a href="'+cert_metadata['udemy_link']+'">this link</a></div>')
+    #end doc
+    document_html.append(html_tail_1_img_3_q_str)
+    #1 doc 1 image
+    filename = 'img_multi_q_'+today_yyyymmdd + '.png'
+    creation_result = generate_image_portrait(''.join(document_html), cert_metadata['img_m_q_folder_path'], filename)
+    return creation_result, filename
