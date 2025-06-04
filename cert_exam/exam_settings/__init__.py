@@ -1,9 +1,10 @@
 #https://github.com/vgalin/html2image
 from html2image import Html2Image
-
+import subprocess
+import os
 hti = Html2Image(custom_flags=['--headless=new', '--quiet=True'], size=(1920, 1080))
 #https://github.com/vgalin/html2image/issues/177 (size should generated from HTML code)
-
+#landscape style
 def generate_image(str_html, folder_path, filename):
     hti.output_path = folder_path
     try:
@@ -100,7 +101,7 @@ html_head_str = '''
         }
 
         .container .div_explan {
-            font-size: 1em;
+            font-size: 0.8em;
         }
 
         .question {
@@ -135,7 +136,7 @@ html_head_str = '''
         }
 
         .explanation label {
-            font-size: 0.7em;
+            font-size: 0.6em;
             font-style: italic;
         }
 
@@ -390,7 +391,9 @@ def generate_images(today_yyyymmdd, cert_metadata, documents):
                     <label>{key}. {doc['explanation'][key]}</label>
                 </div>'''
         #1 doc 1 image
-        generate_image(html_head_str + html_question + html_answers_start + html_answers_end + html_tail_str, cert_metadata['img_folder_path']+"/"+today_yyyymmdd, index_to_string(index) + '.png')
+        exported_result = generate_image(html_head_str + html_question + html_answers_start + html_answers_end + html_tail_str, cert_metadata['img_folder_path']+"/"+today_yyyymmdd, index_to_string(index) + '.png')
+        if exported_result == False:
+            break   #something wrong with this image
         #Second images: options with explanations
         html_answers_start = '<div class="answers">'
         for key in doc['options'].keys():
@@ -404,10 +407,15 @@ def generate_images(today_yyyymmdd, cert_metadata, documents):
                 <div class="explanation show">
                     <label>{doc['explanation'][key]}</label>
                 </div>'''
-        generate_image(html_head_str + '<div class="div_explan">' + html_question + html_answers_start + html_answers_end + '</div>' + html_tail_str, cert_metadata['img_folder_path']+"/"+today_yyyymmdd, '_'+index_to_string(index) + '_explain.png')
+        exported_result = generate_image(html_head_str + '<div class="div_explan">' + html_question + html_answers_start + html_answers_end + '</div>' + html_tail_str, cert_metadata['img_folder_path']+"/"+today_yyyymmdd, '_'+index_to_string(index) + '.png')
+        if exported_result == False:
+            break   #something wrong with this image
         #
         index += 1
-
+    print(index)
+    if index == len(documents) + 1:
+        return True #all images are exported successfully
+    return False    #one of image is not exported well
 ####
 def generate_1_img_multiple_questions(random_documents, cert_metadata, today_yyyymmdd):
     question_index = 1
@@ -441,3 +449,81 @@ def generate_1_img_multiple_questions(random_documents, cert_metadata, today_yyy
     filename = 'img_multi_q_'+today_yyyymmdd + '.png'
     creation_result = generate_image_portrait(''.join(document_html), cert_metadata['img_m_q_folder_path'], filename)
     return creation_result, filename
+#
+def create_video_from_images(ffmpeg_path, image_folder, output_filename, framerate, image_name_pattern):
+    """
+    Creates a video from all JPG images in a specified folder using ffmpeg.
+
+    Args:
+        image_folder (str): The path to the folder containing the images.
+        output_filename (str): The name of the output video file.
+        framerate (int): The framerate of the output video (frames per second).
+    """
+    # Ensure image_folder is an absolute path for better reliability
+    abs_image_folder = os.path.abspath(image_folder)
+    
+    # Define the output path. It's often good to save the output in the same folder of images
+    abs_output_path = os.path.abspath(image_folder + "/" + output_filename)
+
+    # Construct the ffmpeg command.
+    # We pass the full command as a list of strings.
+    # The -y flag will automatically overwrite the output file if it exists.
+    #ffmpeg -framerate 1/30 -i %02d.png -c:v libx264 -r 25 -pix_fmt yuv420p output.mp4
+    ffmpeg_command = [
+        ffmpeg_path,
+        "-framerate", framerate,
+        "-i", abs_image_folder + image_name_pattern,
+        # "-frames:v", "20",
+        #"-pattern_type", "glob",
+        # "-i", "*.png",  # This will look for *.jpg inside the 'cwd' (image_folder)
+        # "-f", "concat",
+        # "-safe", "0",
+        # "-i", "/Users/sang/Documents/Source/Python/python_webscrap/cert_exam/aws_sa_data/img_youtube/20250521/video_duration.txt",
+        "-c:v", "libx264",
+        "-r", "25",
+        "-pix_fmt", "yuv420p",
+        "-y", # Overwrite output file without asking
+        # Note: We don't specify the full output path here directly
+        # because the command is run from the 'image_folder'.
+        # Instead, we pass the absolute path relative to the script's original location.
+        abs_output_path
+    ]
+
+    print(f"Attempting to create video from images in: {abs_image_folder}")
+    print(f"Output video will be: {abs_output_path}")
+    print(f"FFmpeg command: {' '.join(ffmpeg_command)}")
+
+    try:
+        # Use subprocess.run() to execute the command.
+        # cwd: Changes the current working directory for the command execution.
+        #      This is key to making "*.jpg" work correctly.
+        # check=True: Raises an exception if the command returns a non-zero exit code (i.e., fails).
+        # capture_output=True: Captures stdout and stderr.
+        # text=True: Decodes stdout and stderr as text.
+        result = subprocess.run(
+            ffmpeg_command,
+            cwd=abs_image_folder, # This changes the directory for THIS command execution
+            check=True,
+            capture_output=True,
+            text=True
+        )
+        print("\nFFmpeg command executed successfully!")
+        print("STDOUT:")
+        print(result.stdout)
+        print("STDERR:")
+        print(result.stderr) # ffmpeg often prints progress to stderr
+        print(f"Video '{output_filename}' created successfully at {abs_output_path}")
+        return True
+    except FileNotFoundError:
+        print(f"Error: FFmpeg command not found. Make sure FFmpeg is installed and in your system's PATH.")
+        return False
+    except subprocess.CalledProcessError as e:
+        print(f"Error: FFmpeg command failed with exit code {e.returncode}")
+        print("STDOUT:")
+        print(e.stdout)
+        print("STDERR:")
+        print(e.stderr)
+        return False
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        return False
