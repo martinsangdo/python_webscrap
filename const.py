@@ -88,7 +88,10 @@ def parse_candidate_content(data):
             json_match = re.search(r'```json\n(.*?)\n```', text_content, re.DOTALL)
             if json_match:
                 try:
-                    return json.loads(json_match.group(1))
+                    raw_json = json_match.group(1)
+                    raw_json = raw_json.replace("\n", "")
+                    text = re.sub(r',\s*([}\]])', r'\1', raw_json)  #prevent the error "Expecting property name enclosed in double quotes" '{"abc": "x\'xx",}'
+                    return json.loads(text)
                 except json.JSONDecodeError as e:
                     print(f"Error decoding JSON: {e}")
                     return text_content  # Return the raw text in case of an error
