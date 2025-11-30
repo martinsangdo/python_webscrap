@@ -18,7 +18,7 @@ if parent_dir not in sys.path:
     sys.path.append(parent_dir)
 
 import const
-#importlib.reload(const)
+# importlib.reload(const)
 
 # %%
 load_dotenv(override=True) 
@@ -40,13 +40,16 @@ def store_questions_2_db(collection, raw_questions, question_type):
     questions = const.extract_questions_from_candidates(raw_questions)
     if questions:
         #parse questions and answers
+        question_num = 0
         for q in questions:
             if question_type == 'multiple-choice' or (len(q['answer']) > 1):
                 q['exported'] = 0
                 q['uuid'] = const.generate_random_uuid()
                 #print(q)
-                const.insert_questions(collection, q)
-        print('Stored questions to db successfully')
+                if 'explanation' in q:
+                    const.insert_questions(collection, q)
+                    question_num += 1
+        print('Stored ' + str(question_num) + ' questions to db successfully')
     else:
         print("Error: No questions found in the parsed content")
 
@@ -56,11 +59,13 @@ def generate_questions(cert_metadata):
         print('Missing prompt_context')
         return
     context = cert_metadata['prompt_context']
+    exam_name = cert_metadata['name']
+
     question_collection = db[cert_metadata['collection_name']]
     exceeded_quota = False
     #multiple choice
     if 'multi_choice_prompt_prefix' in cert_metadata:
-        text_prompt = cert_metadata['multi_choice_prompt_prefix'] + MULTI_CHOICE_PROMPT
+        text_prompt = cert_metadata['multi_choice_prompt_prefix'].replace('{exam_name}', exam_name) + MULTI_CHOICE_PROMPT
         final_prompt = context + text_prompt
         no_of_loop = ceil(cert_metadata['multi_choice_questions'] / 10)
         for i in range(no_of_loop):
@@ -74,7 +79,7 @@ def generate_questions(cert_metadata):
             time.sleep(5)   #delay 5 seconds
     #multi selection, if any
     if exceeded_quota == False and 'multi_selection_prompt_prefix' in cert_metadata:
-        text_prompt = cert_metadata['multi_selection_prompt_prefix'] + MULTI_SELECTION_PROMPT
+        text_prompt = cert_metadata['multi_selection_prompt_prefix'].replace('{exam_name}', exam_name) + MULTI_SELECTION_PROMPT
         final_prompt = context + text_prompt
         no_of_loop = ceil(cert_metadata['multi_selection_questions'] / 10)
         for i in range(no_of_loop):
@@ -101,10 +106,10 @@ def begin_generate_questions(cert_symbol, no_of_tests):
         print(cert_symbol + ' ========== Finish generating set: ' + str(i+1))
 
 # %%
-#AWS_SAA, AWS_SAP, AWS_CLF_C02, AWS_DVA_C02, AWS_MLA, AWS_DOP, PMI-ACP
-cert_symbol = 'PMI-ACP' #predefined
+#run it: python generate_questions.py
+cert_symbol = 'AWS_DEA_C01' #predefined in db (create new folder in this project in advance)
 
-begin_generate_questions(cert_symbol, 6)    #ideally 6 full tests
+begin_generate_questions(cert_symbol, 1)    #ideally 6 full tests
 
 # %%
 def export_csv(cert_metadata, test_set_number):
@@ -123,6 +128,9 @@ def export_csv(cert_metadata, test_set_number):
             ]
     random_documents = list(question_collection.aggregate(pipeline))
     for doc in random_documents:
+        # print(doc)
+        if 'D' not in doc['options']:
+            print(doc['options'])
         file_data.append([doc['question'].replace('  ', ' ').replace('\n', ''), 'multiple-choice', 
                                   doc['options']['A'], doc['explanation']['A'].replace('  ', ' ').replace('\n', ''),     #A
                                   doc['options']['B'], doc['explanation']['B'].replace('  ', ' ').replace('\n', ''),     #B
@@ -136,7 +144,7 @@ def export_csv(cert_metadata, test_set_number):
                                   ])
         exported_uuid.append(doc['uuid'])
     #2. multi selection
-    if 'multi_selection_questions' in cert_metadata:
+    if 'multi_selection_questions' in cert_metadata and cert_metadata['multi_selection_questions'] > 0:
         pipeline = [
                     {"$match": {'exported': 0, 'type': 'multiple-selection'}},
                     {"$sample": {"size": cert_metadata['multi_selection_questions']}}
@@ -169,7 +177,7 @@ def begin_export_csv(cert_symbol, test_set_number):
     export_csv(cert_metadata, test_set_number)
     
 #test
-#begin_export_csv(cert_symbol, '6')    #Practice set index
+# begin_export_csv(cert_symbol, '1')    #Practice set index
 
 # %%
 

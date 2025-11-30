@@ -112,7 +112,7 @@ def extract_questions_from_candidates(response_data):
         list or None: A list of question dictionaries if found and parsed,
                      otherwise None.
     """
-    print('extract_questions_from_candidates response_data: ', response_data)
+    # print('extract_questions_from_candidates response_data: ', response_data)
     if not isinstance(response_data, dict) or 'candidates' not in response_data or not isinstance(response_data['candidates'], list):
         return None
 
