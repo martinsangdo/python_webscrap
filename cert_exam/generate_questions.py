@@ -31,6 +31,7 @@ metadata_collection = db['tb_cert_metadata']    #meta data of certificates
 #print(GENERATIVE_URI)
 
 # %%
+ROLE_PROMPT = os.environ['ROLE_PROMPT']
 COMMON_QUESTION_PROMPT = os.environ['COMMON_QUESTION_PROMPT']
 MULTI_CHOICE_PROMPT = COMMON_QUESTION_PROMPT + os.environ['MULTI_CHOICE_PROMPT']
 MULTI_SELECTION_PROMPT = COMMON_QUESTION_PROMPT + os.environ['MULTI_SELECTION_PROMPT']
@@ -46,7 +47,7 @@ def store_questions_2_db(collection, raw_questions, question_type):
                 q['exported'] = 0
                 q['uuid'] = const.generate_random_uuid()
                 #print(q)
-                if 'explanation' in q:
+                if 'explanation' in q and 'answer' in q and 'question' in q and 'options' in q:
                     const.insert_questions(collection, q)
                     question_num += 1
         print('Stored ' + str(question_num) + ' questions to db successfully')
@@ -66,7 +67,7 @@ def generate_questions(cert_metadata):
     #multiple choice
     if 'multi_choice_prompt_prefix' in cert_metadata:
         text_prompt = cert_metadata['multi_choice_prompt_prefix'].replace('{exam_name}', exam_name) + MULTI_CHOICE_PROMPT
-        final_prompt = context + text_prompt
+        final_prompt = ROLE_PROMPT + context + text_prompt
         no_of_loop = ceil(cert_metadata['multi_choice_questions'] / 10)
         for i in range(no_of_loop):
             raw_generated_text = const.post_request_generative_ai(GENERATIVE_URI, final_prompt)
@@ -80,7 +81,7 @@ def generate_questions(cert_metadata):
     #multi selection, if any
     if exceeded_quota == False and 'multi_selection_prompt_prefix' in cert_metadata:
         text_prompt = cert_metadata['multi_selection_prompt_prefix'].replace('{exam_name}', exam_name) + MULTI_SELECTION_PROMPT
-        final_prompt = context + text_prompt
+        final_prompt = ROLE_PROMPT + context + text_prompt
         no_of_loop = ceil(cert_metadata['multi_selection_questions'] / 10)
         for i in range(no_of_loop):
             raw_generated_text = const.post_request_generative_ai(GENERATIVE_URI, final_prompt)
@@ -107,7 +108,7 @@ def begin_generate_questions(cert_symbol, no_of_tests):
 
 # %%
 #run it: python generate_questions.py
-cert_symbol = 'AWS_DEA_C01' #predefined in db (create new folder in this project in advance)
+cert_symbol = 'GCP_PCA' #predefined in db (create new folder in this project in advance)
 
 begin_generate_questions(cert_symbol, 1)    #ideally 6 full tests
 
@@ -176,8 +177,9 @@ def begin_export_csv(cert_symbol, test_set_number):
     #
     export_csv(cert_metadata, test_set_number)
     
-#test
-# begin_export_csv(cert_symbol, '1')    #Practice set index
+#generate CSV files
+# for i in range(6):  
+#     begin_export_csv(cert_symbol, str(i))    #Practice set index
 
 # %%
 
