@@ -110,7 +110,7 @@ def begin_generate_questions(cert_symbol, no_of_tests):
 #run it: python generate_questions.py
 cert_symbol = 'GCP_PCA' #predefined in db (create new folder in this project in advance)
 
-begin_generate_questions(cert_symbol, 1)    #ideally 6 full tests
+begin_generate_questions(cert_symbol, 5)    #ideally 6 full tests
 
 # %%
 def export_csv(cert_metadata, test_set_number):
@@ -178,7 +178,7 @@ def begin_export_csv(cert_symbol, test_set_number):
     export_csv(cert_metadata, test_set_number)
     
 #generate CSV files
-# for i in range(6):  
+# for i in range(1,7):  
 #     begin_export_csv(cert_symbol, str(i))    #Practice set index
 
 # %%
