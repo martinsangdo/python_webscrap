@@ -110,7 +110,7 @@ def begin_generate_questions(cert_symbol, no_of_tests):
 #run it: python generate_questions.py
 cert_symbol = 'GCP_PCA' #predefined in db (create new folder in this project in advance)
 
-begin_generate_questions(cert_symbol, 5)    #ideally 6 full tests
+# begin_generate_questions(cert_symbol, 1)    #ideally 6 full tests
 
 # %%
 def export_csv(cert_metadata, test_set_number):
@@ -160,7 +160,7 @@ def export_csv(cert_metadata, test_set_number):
         with open(file_path + filename, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
             writer.writerows(file_data)
-            print(f"Data successfully saved to '{file_path}/{filename}'")
+            print(f"Data successfully saved to '{file_path}{filename}'")
             for _id in exported_uuid:
                 question_collection.update_one({'uuid': _id}, {'$set': {'exported': 1, 'filename': filename}})
             print('","'.join(manual_uuid))
@@ -178,8 +178,8 @@ def begin_export_csv(cert_symbol, test_set_number):
     export_csv(cert_metadata, test_set_number)
     
 #generate CSV files
-# for i in range(1,7):  
-#     begin_export_csv(cert_symbol, str(i))    #Practice set index
+for i in range(1,7):  
+    begin_export_csv(cert_symbol, str(i))    #Practice set index
 
 # %%
 
