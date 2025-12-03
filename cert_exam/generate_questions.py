@@ -95,6 +95,8 @@ def generate_questions(cert_metadata):
 
 # %%
 def begin_generate_questions(cert_symbol, no_of_tests):
+    if cert_symbol is None or cert_symbol == '':
+        return
     #query metadata of this symbol
     cert_metadata = metadata_collection.find_one({'symbol': cert_symbol})
     if cert_metadata is None:
@@ -108,9 +110,9 @@ def begin_generate_questions(cert_symbol, no_of_tests):
 
 # %%
 #run it: python generate_questions.py
-cert_symbol = 'GCP_PCA' #predefined in db (create new folder in this project in advance)
+cert_symbol = '' #predefined in db (create new folder in this project in advance)
 
-# begin_generate_questions(cert_symbol, 1)    #ideally 6 full tests
+# begin_generate_questions(cert_symbol, 7)    #ideally 6 full tests
 
 # %%
 def export_csv(cert_metadata, test_set_number):
@@ -170,6 +172,8 @@ def export_csv(cert_metadata, test_set_number):
 # %%
 #export 1 test at once
 def begin_export_csv(cert_symbol, test_set_number):
+    if cert_symbol is None or cert_symbol == '':
+        return
     cert_metadata = metadata_collection.find_one({'symbol': cert_symbol})
     if cert_metadata is None:
         print('Certificate not found')
@@ -178,8 +182,8 @@ def begin_export_csv(cert_symbol, test_set_number):
     export_csv(cert_metadata, test_set_number)
     
 #generate CSV files
-for i in range(1,7):  
-    begin_export_csv(cert_symbol, str(i))    #Practice set index
+# for i in range(1,7):  
+#     begin_export_csv(cert_symbol, str(i))    #Practice set index
 
 # %%
 
