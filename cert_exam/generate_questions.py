@@ -48,8 +48,9 @@ def store_questions_2_db(collection, raw_questions, question_type):
                 q['uuid'] = const.generate_random_uuid()
                 #print(q)
                 if 'explanation' in q and 'answer' in q and 'question' in q and 'options' in q:
-                    const.insert_questions(collection, q)
-                    question_num += 1
+                    if 'A' in q['explanation'] and 'A' in q['options']:
+                        const.insert_questions(collection, q)
+                        question_num += 1
         print('Stored ' + str(question_num) + ' questions to db successfully')
     else:
         print("Error: No questions found in the parsed content")
@@ -110,9 +111,9 @@ def begin_generate_questions(cert_symbol, no_of_tests):
 
 # %%
 #run it: python generate_questions.py
-cert_symbol = '' #predefined in db (create new folder in this project in advance)
+cert_symbol = 'GCP_PCNE' #predefined in db (create new folder in this project in advance)
 
-# begin_generate_questions(cert_symbol, 7)    #ideally 6 full tests
+begin_generate_questions(cert_symbol, 1)    #ideally 6 full tests
 
 # %%
 def export_csv(cert_metadata, test_set_number):
