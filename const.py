@@ -127,7 +127,10 @@ def extract_questions_from_candidates(platform, response_data):
             if isinstance(parsed_content, dict) and 'questions' in parsed_content and isinstance(parsed_content['questions'], list):
                 return parsed_content['questions']
     elif platform == 'OPENROUTER':
-        return parse_json_response_gemini(response_data)['questions']    #dict
+        try:
+            return parse_json_response_gemini(response_data)['questions']    #dict
+        except Exception as e:
+            print('Error in Openrouter', e)
 
     return None
 
