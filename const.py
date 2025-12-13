@@ -130,7 +130,7 @@ def extract_questions_from_candidates(platform, response_data):
         try:
             return parse_json_response_gemini(response_data)['questions']    #dict
         except Exception as e:
-            print('Error in Openrouter', e)
+            print('Error in Openrouter', response_data)
 
     return None
 
@@ -164,23 +164,24 @@ def get_file_size(file_path):
     
 def send_raw_request_2_openrouter(query, OPEN_ROUTER_AI_KEY):
     response = requests.post(
-    url="https://openrouter.ai/api/v1/chat/completions",
-    headers={
-        "Authorization": "Bearer " + OPEN_ROUTER_AI_KEY
-    },
-    data=json.dumps({
-        "model": 'google/gemini-2.5-flash-lite',
-        "messages": [
-            {
-                "role": "user",
-                "content": query.strip()
-            }
-        ]
-    })
+        url="https://openrouter.ai/api/v1/chat/completions",
+        headers={
+            "Authorization": "Bearer " + OPEN_ROUTER_AI_KEY
+        },
+        data=json.dumps({
+            "model": 'google/gemini-2.5-flash-lite',
+            "messages": [
+                {
+                    "role": "user",
+                    "content": query.strip()
+                }
+            ]
+        })
     )
+    # print('send_raw_request_2_openrouter response', response.text)
     json_obj = json.loads(response.text)
     if 'choices' in json_obj and len(json_obj['choices']) > 0:
         if 'message' in json_obj['choices'][0]: #get the first answer only
             if 'content' in json_obj['choices'][0]['message']:
                 return json_obj['choices'][0]['message']['content']
-    return ''
+    return response.text

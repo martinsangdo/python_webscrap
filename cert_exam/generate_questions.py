@@ -78,12 +78,15 @@ def generate_questions(cert_metadata, platform):
                 raw_generated_text = const.post_request_generative_ai(GENERATIVE_URI, final_prompt)
                 if 'error' in raw_generated_text and 'message' in raw_generated_text['error']:
                     if raw_generated_text['error']['message'].find('You exceeded your current quota') >= 0:
-                        print('You exceeded your current quota, pls try other key or wait until next day')
+                        print('Gemini: You exceeded your current quota, pls try other key or wait until next day')
                         exceeded_quota = True
                         break
             elif platform == 'OPENROUTER':
                 raw_generated_text = const.send_raw_request_2_openrouter(final_prompt, OPEN_ROUTER_AI_KEY)
-            
+                if raw_generated_text.find('This request requires more credits') >= 0:
+                    print('OpenRouter: You exceeded your current quota, pls try other key or wait until next day')
+                    exceeded_quota = True
+                    break
             store_questions_2_db(platform, question_collection, raw_generated_text, 'multiple-choice')
             time.sleep(5)   #delay 5 seconds
     #multi selection, if any
@@ -175,7 +178,7 @@ def export_csv(cert_metadata, test_set_number):
 #run it: python generate_questions.py
 cert_symbol = 'DTB_GAEA' #predefined in db (create new folder in this project in advance)
 platform = 'OPENROUTER'
-# begin_generate_questions(cert_symbol, platform, 1)    #ideally 6 full tests
+begin_generate_questions(cert_symbol, platform, 6)    #ideally 6 full tests
 
 # %%
 #export 1 test at once
