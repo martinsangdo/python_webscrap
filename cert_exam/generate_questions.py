@@ -7,7 +7,6 @@ import time
 from math import ceil
 import csv
 import importlib
-
 # Get the current working directory of the notebook
 notebook_dir = os.getcwd()
 # Get the path to the parent directory
@@ -37,8 +36,11 @@ MULTI_CHOICE_PROMPT = COMMON_QUESTION_PROMPT + os.environ['MULTI_CHOICE_PROMPT']
 MULTI_SELECTION_PROMPT = COMMON_QUESTION_PROMPT + os.environ['MULTI_SELECTION_PROMPT']
 
 # %%
-def store_questions_2_db(collection, raw_questions, question_type):
-    questions = const.extract_questions_from_candidates(raw_questions)
+OPEN_ROUTER_AI_KEY=os.environ['OPENROUTER_KEY']
+
+# %%
+def store_questions_2_db(platform, collection, raw_questions, question_type):
+    questions = const.extract_questions_from_candidates(platform, raw_questions)
     if questions:
         #parse questions and answers
         question_num = 0
@@ -56,7 +58,7 @@ def store_questions_2_db(collection, raw_questions, question_type):
         print("Error: No questions found in the parsed content")
 
 # %%
-def generate_questions(cert_metadata):
+def generate_questions(cert_metadata, platform):
     if 'prompt_context' not in cert_metadata:
         print('Missing prompt_context')
         return
@@ -71,13 +73,18 @@ def generate_questions(cert_metadata):
         final_prompt = ROLE_PROMPT + context + text_prompt
         no_of_loop = ceil(cert_metadata['multi_choice_questions'] / 10)
         for i in range(no_of_loop):
-            raw_generated_text = const.post_request_generative_ai(GENERATIVE_URI, final_prompt)
-            if 'error' in raw_generated_text and 'message' in raw_generated_text['error']:
-                if raw_generated_text['error']['message'].find('You exceeded your current quota') >= 0:
-                    print('You exceeded your current quota, pls try other key or wait until next day')
-                    exceeded_quota = True
-                    break
-            store_questions_2_db(question_collection, raw_generated_text, 'multiple-choice')
+            if platform is None or platform == '':
+                #default is Gemini
+                raw_generated_text = const.post_request_generative_ai(GENERATIVE_URI, final_prompt)
+                if 'error' in raw_generated_text and 'message' in raw_generated_text['error']:
+                    if raw_generated_text['error']['message'].find('You exceeded your current quota') >= 0:
+                        print('You exceeded your current quota, pls try other key or wait until next day')
+                        exceeded_quota = True
+                        break
+            elif platform == 'OPENROUTER':
+                raw_generated_text = const.send_raw_request_2_openrouter(final_prompt, OPEN_ROUTER_AI_KEY)
+            
+            store_questions_2_db(platform, question_collection, raw_generated_text, 'multiple-choice')
             time.sleep(5)   #delay 5 seconds
     #multi selection, if any
     if exceeded_quota == False and 'multi_selection_prompt_prefix' in cert_metadata:
@@ -95,7 +102,7 @@ def generate_questions(cert_metadata):
     
 
 # %%
-def begin_generate_questions(cert_symbol, no_of_tests):
+def begin_generate_questions(cert_symbol, platform, no_of_tests):
     if cert_symbol is None or cert_symbol == '':
         return
     #query metadata of this symbol
@@ -106,14 +113,8 @@ def begin_generate_questions(cert_symbol, no_of_tests):
     print('Begin generating questions for: ' + cert_metadata['name'])
     #
     for i in range(no_of_tests):
-        generate_questions(cert_metadata)
+        generate_questions(cert_metadata, platform)
         print(cert_symbol + ' ========== Finish generating set: ' + str(i+1))
-
-# %%
-#run it: python generate_questions.py
-cert_symbol = 'GCP_PCNE' #predefined in db (create new folder in this project in advance)
-
-begin_generate_questions(cert_symbol, 1)    #ideally 6 full tests
 
 # %%
 def export_csv(cert_metadata, test_set_number):
@@ -171,6 +172,12 @@ def export_csv(cert_metadata, test_set_number):
         print(f"An error occurred while saving the array: {e}")
 
 # %%
+#run it: python generate_questions.py
+cert_symbol = 'DTB_GAEA' #predefined in db (create new folder in this project in advance)
+platform = 'OPENROUTER'
+# begin_generate_questions(cert_symbol, platform, 1)    #ideally 6 full tests
+
+# %%
 #export 1 test at once
 def begin_export_csv(cert_symbol, test_set_number):
     if cert_symbol is None or cert_symbol == '':
@@ -186,7 +193,69 @@ def begin_export_csv(cert_symbol, test_set_number):
 # for i in range(1,7):  
 #     begin_export_csv(cert_symbol, str(i))    #Practice set index
 
+# %% [markdown]
+# <strong>template</strong>
+# 
+# https://medium.com/p/74e3eb52a9fe/edit
+# 
+# 15 New AWS Certified Solutions Architect - Associate (SAA-C03) Exam Questions You Need to Study - Dec 2025
+# 
+# These Practice Questions are Designed For:
+# 
+# - Those preparing for the AWS Certified Solutions Architect - Associate [SAA-C03] exam
+# 
+# - Individuals who prioritize passing the certification on the very first try
+# 
+# - Anyone wanting to test their AWS skills and identify areas for improvement before the actual exam
+# 
+# - Those seeking a practical way to learn AWS with comprehensive questions, answers, and references
+# 
+# - IT professionals who want to feel prepared and confident for AWS technical job interviews
+# 
+# - Anyone looking to boost their career trajectory and income through AWS Certification
+# 
+# - - -
+# 
+# Question 1:
+# 
+# Your application requires infrequent backups. Which S3 storage class is most cost-effective?
+# 
+# A. S3 Standard
+# 
+# B. S3 Intelligent-Tiering
+# 
+# C. S3 Glacier Flexible Retrieval
+# 
+# D. S3 One Zone-Infrequent Access
+# 
+# - - -
+# 
+# Check out this course for more practice questions!
+# 
+# - - -
+# 
+# Answers and explanations:
+# 
+# Question 1: A
+# 
+# A. S3 Standard
+# 
+# B. S3 Intelligent-Tiering
+# 
+# C. S3 Glacier Flexible Retrieval
+# 
+# D. S3 One Zone-Infrequent Access
+# 
+# - - -
+# 
+# Check out this site for more professional IT certification practice exams.
+# https://www.udemy.com/user/martindo/
+
 # %%
+#generate Medium page content
+#title (hard code): 15 New AWS Certified Solutions Architect - Associate (SAA-C03) Exam Questions You Need to Study - Dec 2025
+#introduction (from db blog_intro_template): replace \n
+#
 
 
 

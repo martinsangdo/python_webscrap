@@ -63,6 +63,7 @@ def map_index(a_char):
         return 4
     if a_char == 'E':
         return 5
+#parse from raw Gemini response
 def parse_candidate_content(data):
     """
     Parses the content from a dictionary in the 'candidates' list.
@@ -85,22 +86,25 @@ def parse_candidate_content(data):
         if isinstance(part, dict) and 'text' in part:
             text_content = part['text'].strip()
             # Use regex to find JSON blocks within the text
-            json_match = re.search(r'```json\n(.*?)\n```', text_content, re.DOTALL)
-            if json_match:
-                try:
-                    raw_json = json_match.group(1)
-                    raw_json = raw_json.replace("\n", "")
-                    text = re.sub(r',\s*([}\]])', r'\1', raw_json)  #prevent the error "Expecting property name enclosed in double quotes" '{"abc": "x\'xx",}'
-                    return json.loads(text)
-                except json.JSONDecodeError as e:
-                    print(f"Error decoding JSON: {e}")
-                    return text_content  # Return the raw text in case of an error
-            elif text_content:
-                return text_content  # Return the raw text if no JSON block is found
-
+            return parse_json_response_gemini(text_content)
     return None
 
-def extract_questions_from_candidates(response_data):
+def parse_json_response_gemini(text_content):
+    json_match = re.search(r'```json\n(.*?)\n```', text_content, re.DOTALL)
+    if json_match:
+        try:
+            raw_json = json_match.group(1)
+            raw_json = raw_json.replace("\n", "")
+            text = re.sub(r',\s*([}\]])', r'\1', raw_json)  #prevent the error "Expecting property name enclosed in double quotes" '{"abc": "x\'xx",}'
+            return json.loads(text) #return for first item
+        except json.JSONDecodeError as e:
+            print(f"Error decoding JSON: {e}")
+            return text_content  # Return the raw text in case of an error
+    elif text_content:
+        return text_content  # Return the raw text if no JSON block is found
+
+#parse results from Gemini
+def extract_questions_from_candidates(platform, response_data):
     """
     Extracts and parses the 'questions' list from the 'candidates'
     in the given response data.
@@ -113,18 +117,20 @@ def extract_questions_from_candidates(response_data):
                      otherwise None.
     """
     # print('extract_questions_from_candidates response_data: ', response_data)
-    if not isinstance(response_data, dict) or 'candidates' not in response_data or not isinstance(response_data['candidates'], list):
-        return None
-
-    for candidate in response_data['candidates']:
-        parsed_content = parse_candidate_content(candidate)
-        if isinstance(parsed_content, dict) and 'questions' in parsed_content and isinstance(parsed_content['questions'], list):
-            return parsed_content['questions']
+    if platform is None or platform == '':
+        if not isinstance(response_data, dict) or 'candidates' not in response_data or not isinstance(response_data['candidates'], list):
+            return None
+        # Example usage with your provided data: (raw Gemini)
+        #response_data = {'candidates': [{'content': {'parts': [{'text': '```json\n{\n  "questions": [\n    {\n      "question": "Your company is launching a new e-commerce platform on AWS.  The platform will handle sensitive customer data, including credit card information and personally identifiable information (PII). You need to design a secure architecture that meets PCI DSS compliance requirements.  Describe a comprehensive approach to securing the application, covering data at rest, data in transit, and access control. Consider the use of specific AWS services and explain your rationale for choosing them.  Focus on practical implementation details rather than just naming services.",\n      "topics": ["Data Security", "PCI DSS Compliance", "IAM", "KMS", "VPC", "Security Groups", "WAF", "S3", "Encryption"],\n      "difficulty": "Hard"\n    },\n    {\n      "question": "A client has an existing on-premises application that needs to be migrated to AWS. The application interacts with a legacy database that contains highly sensitive customer records. During the migration, you must ensure that the database remains secure and complies with data sovereignty regulations for Europe (GDPR).  How would you design the migration strategy to minimize downtime and maintain security throughout the process?  Be specific about your choices of AWS services and how you will address data encryption, network security, and compliance.  Consider potential challenges and mitigation strategies.",\n      "topics": ["Data Sovereignty", "GDPR", "Database Migration", "VPN", "Direct Connect", "RDS", "Database Encryption", "IAM Roles", "Network Security", "Disaster Recovery"],\n      "difficulty": "Medium"\n    }\n  ]\n}\n```\n'}], 'role': 'model'}, 'finishReason': 'STOP', 'avgLogprobs': -0.3347730217091848}], 'usageMetadata': {'promptTokenCount': 55, 'candidatesTokenCount': 341, 'totalTokenCount': 396, 'promptTokensDetails': [{'modality': 'TEXT', 'tokenCount': 55}], 'candidatesTokensDetails': [{'modality': 'TEXT', 'tokenCount': 341}]}, 'modelVersion': 'xxx'}
+        for candidate in response_data['candidates']:
+            parsed_content = parse_candidate_content(platform, candidate)
+            if isinstance(parsed_content, dict) and 'questions' in parsed_content and isinstance(parsed_content['questions'], list):
+                return parsed_content['questions']
+    elif platform == 'OPENROUTER':
+        return parse_json_response_gemini(response_data)['questions']    #dict
 
     return None
 
-# Example usage with your provided data:
-#response_data = {'candidates': [{'content': {'parts': [{'text': '```json\n{\n  "questions": [\n    {\n      "question": "Your company is launching a new e-commerce platform on AWS.  The platform will handle sensitive customer data, including credit card information and personally identifiable information (PII). You need to design a secure architecture that meets PCI DSS compliance requirements.  Describe a comprehensive approach to securing the application, covering data at rest, data in transit, and access control. Consider the use of specific AWS services and explain your rationale for choosing them.  Focus on practical implementation details rather than just naming services.",\n      "topics": ["Data Security", "PCI DSS Compliance", "IAM", "KMS", "VPC", "Security Groups", "WAF", "S3", "Encryption"],\n      "difficulty": "Hard"\n    },\n    {\n      "question": "A client has an existing on-premises application that needs to be migrated to AWS. The application interacts with a legacy database that contains highly sensitive customer records. During the migration, you must ensure that the database remains secure and complies with data sovereignty regulations for Europe (GDPR).  How would you design the migration strategy to minimize downtime and maintain security throughout the process?  Be specific about your choices of AWS services and how you will address data encryption, network security, and compliance.  Consider potential challenges and mitigation strategies.",\n      "topics": ["Data Sovereignty", "GDPR", "Database Migration", "VPN", "Direct Connect", "RDS", "Database Encryption", "IAM Roles", "Network Security", "Disaster Recovery"],\n      "difficulty": "Medium"\n    }\n  ]\n}\n```\n'}], 'role': 'model'}, 'finishReason': 'STOP', 'avgLogprobs': -0.3347730217091848}], 'usageMetadata': {'promptTokenCount': 55, 'candidatesTokenCount': 341, 'totalTokenCount': 396, 'promptTokensDetails': [{'modality': 'TEXT', 'tokenCount': 55}], 'candidatesTokensDetails': [{'modality': 'TEXT', 'tokenCount': 341}]}, 'modelVersion': 'xxx'}
 #insert questions to collection
 def insert_questions(collection, json_question):
     if 'question' in json_question:
@@ -152,3 +158,26 @@ def get_file_size(file_path):
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
         return 0
+    
+def send_raw_request_2_openrouter(query, OPEN_ROUTER_AI_KEY):
+    response = requests.post(
+    url="https://openrouter.ai/api/v1/chat/completions",
+    headers={
+        "Authorization": "Bearer " + OPEN_ROUTER_AI_KEY
+    },
+    data=json.dumps({
+        "model": 'google/gemini-2.5-flash-lite',
+        "messages": [
+            {
+                "role": "user",
+                "content": query.strip()
+            }
+        ]
+    })
+    )
+    json_obj = json.loads(response.text)
+    if 'choices' in json_obj and len(json_obj['choices']) > 0:
+        if 'message' in json_obj['choices'][0]: #get the first answer only
+            if 'content' in json_obj['choices'][0]['message']:
+                return json_obj['choices'][0]['message']['content']
+    return ''
