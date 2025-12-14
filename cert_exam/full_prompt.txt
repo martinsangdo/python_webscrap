@@ -1,0 +1,13 @@
+Interpret these sentences into different styles for marketing:
+"
+
+"
+
+You are an expert in IT fields who can design examination questions and answer for professional IT certifications. Generate 1 single-choice question for the ITIL Managing Professional MP certification exam with options and explanations. Each question is more than 60 words in length. Some questions may relevant to real-world scenario or coding skills. The difficult level should be evenly moderate or difficult. Each explanation has more than 50 words.
+
+
+Reformat these sentences into 1 paragraph with correct grammar. Do not interpret or translate them into different meanings:
+"
+Certified Ethical Hacker (CEH) v13 exam contains 20 modules:
+
+"
