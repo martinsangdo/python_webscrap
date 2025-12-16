@@ -120,7 +120,7 @@ def auto_repost(random_document):
 # %%
 #download image into the folder
 def download_img(image_url, img_name):
-    folder_name = 'img' #in same place
+    folder_name = 'img' #in same place (/Users/.../img)
     try:
         # Create the save folder if it doesn't exist
         os.makedirs(folder_name, exist_ok=True)
