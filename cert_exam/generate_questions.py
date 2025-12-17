@@ -37,7 +37,7 @@ MULTI_SELECTION_PROMPT = COMMON_QUESTION_PROMPT + os.environ['MULTI_SELECTION_PR
 
 # %%
 OPEN_ROUTER_AI_KEY=os.environ['OPENROUTER_KEY']
-
+#print(OPEN_ROUTER_AI_KEY)
 # %%
 def store_questions_2_db(platform, collection, raw_questions, question_type):
     questions = const.extract_questions_from_candidates(platform, raw_questions)
@@ -71,6 +71,8 @@ def generate_questions(cert_metadata, platform):
     if 'multi_choice_prompt_prefix' in cert_metadata:
         text_prompt = cert_metadata['multi_choice_prompt_prefix'].replace('{exam_name}', exam_name) + MULTI_CHOICE_PROMPT
         final_prompt = ROLE_PROMPT + context + text_prompt
+        # print('final_prompt', final_prompt)
+        # return
         no_of_loop = ceil(cert_metadata['multi_choice_questions'] / 10)
         for i in range(no_of_loop):
             if platform is None or platform == '':
@@ -131,7 +133,7 @@ def export_csv(cert_metadata, test_set_number):
     manual_uuid = []
     #1. export multiple-choice first
     pipeline = [
-                {"$match": {'exported': 0, 'type': 'multiple-choice'}},
+                {"$match": {'exported':0, 'type': 'multiple-choice'}},
                 {"$sample": {"size": cert_metadata['multi_choice_questions']}}
             ]
     random_documents = list(question_collection.aggregate(pipeline))
@@ -176,9 +178,9 @@ def export_csv(cert_metadata, test_set_number):
 
 # %%
 #run it: python generate_questions.py
-cert_symbol = 'DTB_GAEA' #predefined in db (create new folder in this project in advance)
-platform = 'OPENROUTER'
-begin_generate_questions(cert_symbol, platform, 6)    #ideally 6 full tests
+cert_symbol = 'SCRUM_PSD_1' #predefined in db (create new folder in this project in advance)
+platform = ''#'OPENROUTER'
+begin_generate_questions(cert_symbol, platform, 1)    #ideally 6 full tests
 
 # %%
 #export 1 test at once
