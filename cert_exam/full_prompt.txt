@@ -1,13 +1,50 @@
 Interpret these sentences into different styles for marketing:
 "
-
 "
+-------------- manually generate questions
+You are an expert in IT fields who can design examination questions and answer for professional IT certifications. Take this examination content and scopes: \nThe Terraform Associate 004 exam covers eight domains. First, Infrastructure as Code (IaC) with Terraform involves explaining what IaC is, describing the advantages of IaC patterns, and explaining how Terraform manages multi-cloud, hybrid cloud, and service-agnostic workflows. Second, Terraform fundamentals requires installing and versioning Terraform providers, describing how Terraform uses providers, writing configuration using multiple providers, and explaining how Terraform uses and manages state. Third, the Core Terraform workflow includes describing the workflow, initializing a working directory, validating configuration, generating and reviewing an execution plan, applying changes, destroying managed infrastructure, and applying formatting and style adjustments to a configuration. Fourth, Terraform configuration focuses on using and differentiating resource and data blocks, referring to resource attributes and creating cross-resource references, using variables and outputs, understanding and using complex types, writing dynamic configuration using expressions and functions, defining resource dependencies, validating configuration using custom conditions, and understanding best practices for managing sensitive data, including secrets management with Vault. Fifth, Terraform modules covers explaining how Terraform sources modules, describing variable scope within modules, using modules in configuration, and managing module versions. Sixth, Terraform state management addresses describing the local backend, describing state locking, configuring remote state using the backend block, and managing resource drift and Terraform state. Seventh, Maintain infrastructure with Terraform involves importing existing infrastructure, using the CLI to inspect state, and describing when and how to use verbose logging. Eighth, HCP Terraform covers using HCP Terraform to create infrastructure, describing its collaboration and governance features, describing how to organize and use workspaces and projects, and configuring and using HCP Terraform integration.Generate 16 high-quality and non-duplicated multiple-choice questions (there are 2 questions per each domain) with answers and explanations for the HashiCorp Certified: Terraform Associate 004 examination.Each question is more than 60 words in length. Some questions may relevant to real-world scenarios or definitions or coding skills. The difficult level should be evenly moderate or difficult. Please provide a response in a structured JSON format with the key name "questions", including all explanations for each answer as a valid JSON object. Each explanation has more than 50 words. The response questions and answers should not contain single or double quote characters so that it must avoid the error while parsing JSON format "Error decoding JSON: Expecting property name enclosed in double quotes."Sample response structure should be like this: {"type": "multiple-choice", "exported":0, "question": "a text", "options": { "A": "a text", "B": "a text", "C": "a text", "D": "a text"}, "answer": B, "explanation": { "A": "a text", "B": "a text", "C": "a text", "D": "a text"}}.
+Do not show results in interactive quiz.
+--------------
 
-You are an expert in IT fields who can design examination questions and answer for professional IT certifications. Generate 1 single-choice question for the ITIL Managing Professional MP certification exam with options and explanations. Each question is more than 60 words in length. Some questions may relevant to real-world scenario or coding skills. The difficult level should be evenly moderate or difficult. Each explanation has more than 50 words.
+Each question has a random UUID in the key "uuid".
+Do not show results in interactive quiz.
+--------------
+
+Each question has a random UUID in the key "uuid".
+Do not show results in interactive quiz.
+--------------
+
+Each question has a random UUID in the key "uuid".
+Do not show results in interactive quiz.
+--------------
+
+Each question has a random UUID in the key "uuid".
+Do not show results in interactive quiz.
+--------------
+
+Each question has a random UUID in the key "uuid".
+Do not show results in interactive quiz.
+--------------
+
+Each question has a random UUID in the key "uuid".
+Do not show results in interactive quiz.
+--------------
+
+Each question has a random UUID in the key "uuid".
+Do not show results in interactive quiz.
+--------------
+
+Each question has a random UUID in the key "uuid".
+Do not show results in interactive quiz.
+--------------
+
+Each question has a random UUID in the key "uuid".
+Do not show results in interactive quiz.
 
 
+==========
 Reformat these sentences into 1 paragraph with correct grammar. Do not interpret or translate them into different meanings:
 "
-Certified Ethical Hacker (CEH) v13 exam contains 20 modules:
-
+NVIDIA-Certified Professional: Accelerated Data Science (NCP-ADS) certification exam has 6 domains:
+1. 
 "
