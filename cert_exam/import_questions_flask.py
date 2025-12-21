@@ -8,7 +8,7 @@ db_client = pymongo.MongoClient(os.environ['DB_URI'])
 db = db_client['db_certificates'] 
 
 
-question_collection = db['tb_az_dp_300']    ##### HARD CODE 
+question_collection = db['tb_docker_dca']    ##### HARD CODE 
 
 
 # Initialize the Flask application
@@ -34,6 +34,9 @@ def import_question():
     #validate question
     for raw_question in questions:
         if 'explanation' not in raw_question:
+            no_of_invalid_questions = no_of_invalid_questions + 1
+            continue
+        if 'A' not in raw_question['explanation']:
             no_of_invalid_questions = no_of_invalid_questions + 1
             continue
         #check duplicated of question content
