@@ -73,8 +73,8 @@ def generate_questions(cert_metadata, platform):
         text_prompt = cert_metadata['multi_choice_prompt_prefix'].replace('{exam_name}', exam_name) + MULTI_CHOICE_PROMPT
         final_prompt = ROLE_PROMPT + context + text_prompt
         ################
-        print(final_prompt)
-        return
+        # print(final_prompt)
+        # return
         ################
         no_of_loop = ceil(cert_metadata['multi_choice_questions'] / 10)
         for i in range(no_of_loop):
@@ -202,7 +202,7 @@ def find_wrong_exams():
             print(cert['collection_name'])
             print('========')
 #test
-find_wrong_exams()
+# find_wrong_exams()
 
 # %% [markdown]
 # 
@@ -255,13 +255,13 @@ def remove_duplicated_questions_by_question(collection_name):
     #         question_collection.delete_many({'question':question})
 
 #test
-remove_duplicated_questions_by_question('tb_terra_a_004')
+remove_duplicated_questions_by_question('tb_itil_foundation')
 
 # %%
 #run it: python generate_questions.py
-cert_symbol = 'TERRA_A_004' #predefined in db (create new folder in this project in advance)
+cert_symbol = 'ITIL_FOUNDATION' #predefined in db (create new folder in this project in advance)
 platform = ''
-# begin_generate_questions(cert_symbol, platform, 1)    #ideally 6 full tests
+# begin_generate_questions(cert_symbol, platform, 2)    #ideally 6 full tests
 
 #generate CSV files
 # for i in range(1,7):  
