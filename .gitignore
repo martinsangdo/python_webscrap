@@ -3,7 +3,7 @@
 *.jpg
 *.pyc
 *.csv
-*/output/*.png
+*/output/*
 *.pdf
 *.mp3
 *.DS_Store
