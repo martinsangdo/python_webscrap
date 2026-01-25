@@ -19,11 +19,11 @@ Rules:
   "posted_li_img": 0
 }
 
-Sample content of the post: exam traps, study systems, role paths
+Sample content of the post: exam traps, study systems, role paths, tips
 - Before/after career journeys
 - Mistakes learners make
 - How roles + salaries change with certs
-
+- Standout CV for job applications
 ==== AI
 [{"name":"PMI Cognitive Project Management in AI (CPMAI)",  "symbol":"PMI_CPMAI", "category":"AI"},
 {"name":"AWS Certified AI Practitioner (AIF-C01)",  "symbol":"AWS_AIF", "category":"AI"},
