@@ -1,0 +1,46 @@
+You are a senior marketer.
+I have a list of IT certifications as following:
+
+Give me the 7 days plan to post to the LinkedIn page so that I can attract many views for my course exams.
+Rules:
+- Each ready post tell about why these certifications are very useful for career, high salary; a act fact CTA that they should check out practice questions to prepare to pass these certifications for the first times.
+- Avoid keywords: "course", "discount", "sale", etc that make users think we are advertising.
+- Each daily post should introduce 2 to 3 different relative certifications.
+- Give the response as a list of JSON object with format like this: []
+{
+  "category": "AI",
+  "hook":"...",
+  "problems":"...",
+  "insight":"...",
+  "value":"...",
+  "roles": "...",
+  "salary": "$X - $Y",
+  "symbols": "list of symbols as a string, for example AAA,BBB",
+  "posted_li_img": 0
+}
+
+Sample content of the post: exam traps, study systems, role paths
+- Before/after career journeys
+- Mistakes learners make
+- How roles + salaries change with certs
+
+==== AI
+[{"name":"PMI Cognitive Project Management in AI (CPMAI)",  "symbol":"PMI_CPMAI", "category":"AI"},
+{"name":"AWS Certified AI Practitioner (AIF-C01)",  "symbol":"AWS_AIF", "category":"AI"},
+{"name":"AWS Certified Generative AI Developer - Professional (AIP-C01)",  "symbol":"AWS_AIP_C01", "category":"AI"},
+{"name":"Google Generative AI Leader",  "symbol":"GCP_GAL", "category":"AI"},
+{"name":"Microsoft Certified: Azure AI Engineer Associate (AZ-102)",  "symbol":"AZ_AI_102", "category":"AI"},
+{"name":"Microsoft Certified: Azure AI Fundamentals (AZ-AI-900)",  "symbol":"AZ_AI_900", "category":"AI"},
+{"name":"Databricks Certified Generative AI Engineer Associate",  "symbol":"DTB_GAEA", "category":"AI"},
+{"name":"ISACA Advanced in AI Security Management (AAISM)",  "symbol":"ISACA_AAISM", "category":"AI"},
+{"name":"ISACA AI Fundamentals",  "symbol":"ISACA_AIF", "category":"AI"},
+{"name":"ISACA Advanced in AI Audit (AAIA)",  "symbol":"ISACA_AAIA", "category":"AI"},
+{"name":"CompTIA SecAI+",  "symbol":"COMP_SEC_AI", "category":"AI"},
+{"name":"Snowflake SnowPro Specialty Gen AI",  "symbol":"SNOW_SSGA", "category":"AI"},
+{"name":"NVIDIA-Certified Associate: Generative AI and LLMs (NCA-GENL)",  "symbol":"NCA_GENL", "category":"AI"},
+{"name":"NVIDIA-Certified Associate: Multimodal Generative AI (NCA-GENM)",  "symbol":"NCA_GENM", "category":"AI"},
+{"name":"NVIDIA-Certified Professional: Generative AI LLMs (NCP-GENL)",  "symbol":"NCP_GENL", "category":"AI"},
+{"name":"NVIDIA-Certified Professional: Agentic AI (NCP-AAI)",  "symbol":"NCP_AAI", "category":"AI"},
+{"name":"NVIDIA-Certified Professional: AI Infrastructure (NCP-AII)",  "symbol":"NCP_AII", "category":"AI"}]
+
+==== 
