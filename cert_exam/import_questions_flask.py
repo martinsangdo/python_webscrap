@@ -10,7 +10,6 @@ db = db_client['db_certificates']
 
 question_collection = db['tb_docker_dca']    ##### HARD CODE 
 
-
 # Initialize the Flask application
 app = Flask(__name__)
 
@@ -55,6 +54,29 @@ def import_question():
         "message": "Question imported successfully",
         "no_of_invalid_questions": no_of_invalid_questions,
         "no_of_valid_questions": no_of_valid_questions
+    }), 201
+
+#import brief of all certs
+@app.route('/import_brief', methods=['POST'])
+def import_brief():
+    questions = request.get_json()
+    if not questions:
+        return jsonify({
+            "error": "Invalid request",
+            "message": "Please provide data in the JSON body."
+        }), 400
+    metadata_collection = db['tb_cert_metadata']
+
+    for question in questions:
+        #check duplicated of question content
+        doc_existed = metadata_collection.find_one({'symbol': question['symbol']})
+        if doc_existed is not None:
+            #update brief
+            metadata_collection.update_one({'symbol':question['symbol']}, {'$set':{'short_brief': question['short_brief']}})
+
+    # 4. Return a success response
+    return jsonify({
+        "message": "Briefs are imported successfully"
     }), 201
 
 # Run the app if this script is executed
