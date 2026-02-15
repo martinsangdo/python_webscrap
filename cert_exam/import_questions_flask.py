@@ -4,11 +4,11 @@ import pymongo
 import os
 
 load_dotenv(override=True) 
-db_client = pymongo.MongoClient(os.environ['DB_URI'])
+db_client = pymongo.MongoClient(os.environ['REMOTE_MONGO_DB'])
 db = db_client['db_certificates'] 
 
 
-question_collection = db['tb_docker_dca']    ##### HARD CODE 
+question_collection = db['tb_cert_metadata']    ##### HARD CODE 
 
 # Initialize the Flask application
 app = Flask(__name__)
@@ -77,6 +77,23 @@ def import_brief():
     # 4. Return a success response
     return jsonify({
         "message": "Briefs are imported successfully"
+    }), 201
+
+#import slug of all certs
+@app.route('/import_slugs', methods=['POST'])
+def import_slugs():
+    slugs = request.get_json()  #a map
+    metadata_collection = db['tb_cert_metadata']
+
+    for symbol,slug in slugs.items():
+        doc_existed = metadata_collection.find_one({'symbol':symbol})
+        if doc_existed is not None:
+            #update slug
+            metadata_collection.update_one({'symbol': symbol}, {'$set':{'slug': slug}})
+
+    # 4. Return a success response
+    return jsonify({
+        "message": "Slugs are imported successfully"
     }), 201
 
 # Run the app if this script is executed
