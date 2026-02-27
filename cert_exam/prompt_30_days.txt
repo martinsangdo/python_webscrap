@@ -12,25 +12,106 @@ Rules:
 		"sub_contents": ["2 sentences. Maximum 15 words","2 sentences. Maximum 15 words","2 sentences. Maximum 15 words"],
 		"content":"a full post content for ready-post. The content includes following content in order: hook, sub contents, bullets of benefits if user have such certifications, bullets of cerfication names and '{symbol}' in each row, salary"
 		"salary": "salary range for all 3 certifications, format as $...k - $...k",
-		"category": "PROJECT_MANAGEMENT",
+		"category": "",
 		"posted": 0
 	},
 	...
 ]
 The certifications list as belows:
-PMI Project Management Professional (PMP)	:	PMP
-PMI Certified Associate in Project Management (CAPM)	:	PMI_CAPM
-PMI Program Management Professional (PgMP)	:	PMI_PgMP
-PMI Portfolio Management Professional (PfMP)	:	PMI_PfMP
-PMI Project Management Office Certified Professional (PMI-PMOCP)	:	PMI_PMOCP
-PRINCE2 Agile Foundation	:	PRINCE_AF
-PRINCE2 Project Management Foundation	:	PRINCE_PMF
 
 
 
 
 ===== GENERAL
-
+PMI Project Management Professional (PMP)	:	PMP
+PMI Certified Associate in Project Management (CAPM)	:	PMI_CAPM
+PMI Program Management Professional (PgMP)	:	PMI_PgMP
+PMI Portfolio Management Professional (PfMP)	:	PMI_PfMP
+PMI Project Management Office Certified Professional (PMI-PMOCP)	:	PMI_PMOCP
+PMI Agile Certified Practitioner (PMI-ACP)	:	PMI-ACP
+PMI Professional in Business Analysis (PMI-PBA)	:	PMI_PBA
+PMI Cognitive Project Management in AI (CPMAI)	:	PMI_CPMAI
+Professional Scrum Master I (PSM I)	:	PSM_1
+Professional Scrum Master II (PSM II)	:	PSM_2
+Professional Scrum Product Owner I (PSPO I)	:	SCRUM_PSPO_I
+Professional Scrum Product Owner II (PSPO II)	:	SCRUM_PSPO_II
+Professional Agile Leadership (PAL I)	:	SCRUM_PAL_1
+Professional Scrum Developer I (PSD I)	:	SCRUM_PSD_1
+Professional Scrum with Kanban I (PSK I)	:	SCRUM_PSK_1
+Certified ScrumMaster (CSM)	:	SCRUM_CSM
+AWS Certified Cloud Practitioner (CLF-C02)	:	AWS_CLF_C02
+AWS Certified AI Practitioner (AIF-C01)	:	AWS_AIF
+AWS Certified Developer - Associate (DVA-C02)	:	AWS_DVA_C02
+AWS Certified Generative AI Developer - Professional (AIP-C01)	:	AWS_AIP_C01
+AWS Certified Data Engineer - Associate (DEA-C01)	:	AWS_DEA_C01
+AWS Certified Machine Learning Engineer - Associate (MLA-C01)	:	AWS_MLA
+AWS Certified Solutions Architect - Associate (SAA C03)	:	AWS_SAA
+AWS Certified Solutions Architect - Professional (SAP-C02)	:	AWS_SAP
+AWS Certified DevOps Engineer - Professional (DOP-C02)	:	AWS_DOP
+AWS Certified Advanced Networking - Specialty (ANS-C01)	:	AWS_ANS_C01
+Google Professional Data Engineer 	:	GCP_PCDataE
+Google Associate Cloud Engineer	:	GCP_ACE
+Google Generative AI Leader	:	GCP_GAL
+Google Professional Cloud Architect	:	GCP_PCA
+Google Professional Cloud Database Engineer	:	GCP_PCDE
+Google Professional Cloud DevOps Engineer	:	GCP_PCDOE
+Google Professional Cloud Security Engineer	:	GCP_PCSE
+Google Professional Cloud Network Engineer	:	GCP_PCNE
+Google Professional Machine Learning Engineer	:	GCP_PMLE
+Microsoft Certified: Azure AI Engineer Associate (AZ-102)	:	AZ_AI_102
+Microsoft Certified: Azure AI Fundamentals (AZ-AI-900)	:	AZ_AI_900
+Microsoft Certified: Azure Data Fundamentals (DP-900)	:	AZ_DP_900
+Microsoft Certified: Azure Data Scientist Associate (DP-100)	:	AZ_DP_100
+Microsoft Certified: Azure Database Administrator Associate (DP-300)	:	AZ_DP_300
+Microsoft Certified: Azure Developer Associate (AZ-204)	:	AZ_AZ_204
+Microsoft Certified: Azure Fundamentals (AZ-900)	:	AZ_AZ_900
+Microsoft Certified: Azure Network Engineer Associate (AZ-700)	:	AZ_AZ_700
+Microsoft Certified: Azure Security Engineer Associate (AZ-500)	:	AZ_AZ_500
+Microsoft Certified: Azure Solutions Architect Expert (AZ-305)	:	AZ_SA_305
+Microsoft Certified: DevOps Engineer Expert (AZ-400)	:	AZ_AZ_400
+Terraform Associate 004	:	TERRA_A_004
+Docker Certified Associate (DCA)	:	DOCKER_DCA
+Databricks Data Engineer Associate	:	DTB_DEA
+Databricks Data Engineer Professional	:	DTB_CDEP
+Databricks Certified Generative AI Engineer Associate	:	DTB_GAEA
+Databricks Certified Associate Developer for Apache Spark	:	DTB_ADAS
+Databricks Certified Data Analyst Associate	:	DTB_DAA
+Databricks Certified Machine Learning Associate 	:	DTB_MLA
+Databricks Certified Machine Learning Professional	:	DTB_MLP
+ISACA Certified Information Systems Security Professional (CISSP)	:	ISC_CISSP
+ISACA Certified Information Systems Auditor (CISA)	:	ISACA_CISA
+ISACA Certified Information Security Manager (CISM)	:	ISACA_CISM
+ISACA Certified in Risk and Information Systems Control (CRISC)	:	ISACA_CRISC
+ISACA Advanced in AI Security Management (AAISM)	:	ISACA_AAISM
+ISACA AI Fundamentals	:	ISACA_AIF
+ISACA Advanced in AI Audit (AAIA)	:	ISACA_AAIA
+ISACA Certified Cloud Security Professional (CCSP)	:	ISC_CCSP
+CompTIA A+ v15	:	COMP_A_PLUS
+CompTIA CloudNetX	:	COMP_CLOUD_NETX
+CompTIA SecurityX V5 (CAS-005)	:	COMP_SECURITY_X
+CompTIA Cloud+	:	COMP_CLOUD_PLUS
+CompTIA Cybersecurity Analyst (CySA+)	:	COMP_CYSA
+CompTIA PenTest+ (PT0-003)	:	COMP_PEN_TEST
+CompTIA SecAI+	:	COMP_SEC_AI
+ServiceNow Certified Application Developer (CAD)	:	SERV_CAD
+ServiceNow Certified Technical Architect (CTA)	:	SERV_CTA
+Snowflake SnowPro Advanced Architect	:	SNOW_SAA
+Snowflake SnowPro Advanced Data Engineer	:	SNOW_SADE
+Snowflake SnowPro Advanced Data Scientist	:	SNOW_SADS
+Snowflake SnowPro Specialty Gen AI	:	SNOW_SSGA
+Snowflake SnowPro Advanced Data Analyst	:	SNOW_SADA
+NVIDIA-Certified Associate: Generative AI and LLMs (NCA-GENL)	:	NCA_GENL
+NVIDIA-Certified Associate: Multimodal Generative AI (NCA-GENM)	:	NCA_GENM
+NVIDIA-Certified Professional: Generative AI LLMs (NCP-GENL)	:	NCP_GENL
+NVIDIA-Certified Professional: Agentic AI (NCP-AAI)	:	NCP_AAI
+NVIDIA-Certified Professional: Accelerated Data Science (NCP-ADS)	:	NCP_ADS
+NVIDIA-Certified Professional: AI Infrastructure (NCP-AII)	:	NCP_AII
+PRINCE2 Agile Foundation	:	PRINCE_AF
+PRINCE2 Project Management Foundation	:	PRINCE_PMF
+SAFe Architects (ARCH)	:	SAFE_ARCH
+TOGAF 9 Certified Standard	:	TOGAF_STAND
+EC-Council Certified Ethical Hacker (CEH) v13	:	ECC_CEH
+ITIL 4 Foundation	:	ITIL_FOUNDATION
 
 
 ===== AI
