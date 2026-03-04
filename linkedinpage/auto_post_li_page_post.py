@@ -120,7 +120,7 @@ def auto_repost(random_document):
 # %%
 #download image into the folder
 def download_img(image_url, img_name):
-    folder_name = 'img' #in same place (/Users/.../img)
+    folder_name = 'img' #in same place
     try:
         # Create the save folder if it doesn't exist
         os.makedirs(folder_name, exist_ok=True)
@@ -182,7 +182,6 @@ def reformat_description():
     description = description.replace(':person\_', ':person_')
     description = description.replace('urn:li:person:', '')
     description = description.replace('urn:li:organization:', '')
-
     return description
 
 # %%
@@ -250,6 +249,8 @@ def upload_img(file_path, upload_detail):
                 print("File uploaded successfully!")
                 time.sleep(5)   #delay 5 seconds for image going through LI system
                 result = share_my_img(upload_detail['asset'])
+                #delete image after sharing successfully
+                os.remove(file_path)    #delete that file
                 return result
             else:
                 print("File upload failed.")
@@ -308,6 +309,9 @@ def download_n_reshare_post():
 
 # %%
 download_n_reshare_post()
+
+# %%
+#todo: delete image in the folder "/Users/sangdo/img"
 
 # %%
 db_client.close()
