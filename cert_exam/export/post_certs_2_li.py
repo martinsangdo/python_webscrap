@@ -64,7 +64,7 @@ def draw_wrapped_text(draw, position, text, font, max_width, fill=(255,255,255),
 
 # %%
 #current path of this project
-CURRENT_PATH = os.getcwd() + '/'  #'/Users/sang/Documents/Source/Python/python_webscrap/cert_exam/'
+CURRENT_PATH = '/Users/sangdo/Documents/Source/Python/python_webscrap/cert_exam/'
 
 # %%
 CTA_LINKS = '\nVisit the links above to help you pass these certifications at your first try\n'
