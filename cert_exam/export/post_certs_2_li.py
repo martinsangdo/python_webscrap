@@ -567,6 +567,8 @@ def post_1_image_by_category(_category, template_filename, template_info):
         #add flag to that post to indicate done
         post_details['posted'] = 1
         tb_advertising_posts.replace_one({"_id": post_details['_id']}, post_details)
+        #remove the image
+        os.remove(new_img_path)
         return
     else:
         print('There is an error for posting in LI page for category: ' + _category)
