@@ -105,7 +105,7 @@ PRINCE2 Agile Foundation:PRINCE_AF
 PRINCE2 Project Management Foundation:PRINCE_PMF
 SAFe Architects (ARCH):SAFE_ARCH
 TOGAF 9 Certified Standard:TOGAF_STAND
-EC-Council Certified Ethical Hacker (CEH) v13:ECC_CEH
+Ethical Hacker Certification v13:ECC_CEH
 ITIL 4 Foundation:ITIL_FOUNDATION
 
 
@@ -379,4 +379,4 @@ ISACA Certified Cloud Security Professional (CCSP):ISC_CCSP
 CompTIA SecurityX V5 (CAS-005):COMP_SECURITY_X
 CompTIA Cybersecurity Analyst (CySA+):COMP_CYSA
 CompTIA PenTest+ (PT0-003):COMP_PEN_TEST
-EC-Council Certified Ethical Hacker (CEH) v13:ECC_CEH
+Ethical Hacker Certification v13:ECC_CEH
