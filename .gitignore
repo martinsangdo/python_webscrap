@@ -9,3 +9,6 @@
 *.DS_Store
 *.mp4
 *.xlsx
+.idea/*
+__pycache__/
+output/
