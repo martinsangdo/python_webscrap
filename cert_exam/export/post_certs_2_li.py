@@ -27,6 +27,9 @@ tb_linkedin_app = db['tb_linkedin_app']    #LI App
 tb_linkedin_page = db['tb_linkedin_page']    #LI Page info
 
 # %%
+LANDING_PAGE_URL = "https://certquestionbank.com/detail/"
+
+# %%
 def get_timestamp():
     return str(int(time.time()))
 
@@ -170,9 +173,6 @@ IMG_OUTPUT_PATH_PREFIX = CURRENT_PATH + 'output/'  #the final image
 FONT_PATH = CURRENT_PATH + "font/Inter.ttf"
 
 # %%
-
-
-# %%
 IMAGE_TEMPLATE_INFO = {
     'group_1': {
         'font_name': '',
@@ -305,7 +305,7 @@ def create_certifications_from_single_image_template(
         cert_details = tb_cert_metadata.find_one({'symbol':symbol})
         # print(cert_details['name'])
         #landing page
-        link = 'https://certification-pro.blogspot.com/2026/02/' + cert_details['slug'] + '.html'
+        link = LANDING_PAGE_URL + cert_details['slug']
         # print(link)
         symbol_link_map[symbol] = link
     return symbol_link_map
@@ -326,10 +326,10 @@ def show_landing_url():
     for cert in all_certs:
         print(cert['name'])
         print(cert['slug'])
-        print('https://certification-pro.blogspot.com/2026/02/' + cert['slug'] + '.html')
+        print(LANDING_PAGE_URL + cert['slug'])
 
 #test
-# show_landing_url()
+show_landing_url()
 
 
 # %%
