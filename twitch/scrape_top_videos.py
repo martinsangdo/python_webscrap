@@ -60,6 +60,17 @@ def get_seconds_until_link_dies(twitch_mp4_url):
         
     return None
 
+def get_yesterday_iso():
+    now = datetime.datetime.utcnow()
+    one_week_ago = now - datetime.timedelta(days=1)
+    started_at = one_week_ago.isoformat() + "Z"
+    return started_at
+
+def get_today_iso():
+    now = datetime.datetime.utcnow()
+    started_at = now.isoformat() + "Z"
+    return started_at
+
 def get_native_tiktok_feed():
     # Fetch top 3 trending games
     games_resp = requests.get(
@@ -112,5 +123,51 @@ def get_native_tiktok_feed():
         print(f"Direct MP4 Link: {clip['video_url']}")
         print(f"Seconds until link dies: {get_seconds_until_link_dies(clip['video_url']) // 3600} hours")
 
+#get clips of channels
+CATEGORY_IDS = {    #6 categories
+    'music': 26936,
+    #more
+}
+TOTAL_VIDS_PER_CAT = 4000   #total videos per each category
+ITEMS_PER_PAGE = 100
+#1 week - 20000 clips -> 1 day scrapes 3000 clips within 4 hours -> 30 mins 500 clips per each category
+#each category has 4000 clips
+def get_all_clips(category_id):
+    started_at = get_yesterday_iso()
+    clips = []
+    for i in range (0, 1):
+        clips_url = f"https://api.twitch.tv/helix/clips?game_id={category_id}&started_at={started_at}&first={ITEMS_PER_PAGE}"
+        response = requests.get(clips_url, headers=headers)
+        if response.status_code != 200:
+            print("Token Expired or Auth Failed!")
+            break
+        clips.extend(response.json().get("data", []))
+    # print(clips)
+    if len(clips) == 0:
+        return
+    index = 0
+    final_clips = []
+    for clip in clips:
+        mp4_url = extract_real_mp4_with_ytdlp(clip['embed_url'])
+        if mp4_url is not None:
+            # print(mp4_url)
+            final_clips.append({    #save minium to optimize database
+                "t": clip['title'],
+                "t": clip['thumbnail_url'],
+                "cr": clip['creator_name'],
+                "v": clip['view_count'],
+                "d": clip['duration'],
+                "c": category_id,
+                "m": mp4_url,
+                "ca": get_today_iso()
+            })
+            #todo: save streamer id and info (for user to follow)
+        index = index + 1
+        if index == 3:
+            break
+    print(final_clips)
+    return final_clips
+#
 if __name__ == "__main__":
-    get_native_tiktok_feed()
+    # get_native_tiktok_feed()
+    get_all_clips(CATEGORY_IDS['music'])
