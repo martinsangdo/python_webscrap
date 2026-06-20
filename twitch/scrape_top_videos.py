@@ -6,6 +6,7 @@ load_dotenv(override=True)
 import datetime
 import yt_dlp
 import re
+import pymongo
 
 # 1. PLUG IN YOUR EXISTING TOKENS HERE
 CLIENT_ID = os.environ['TWITCH_CLIENT_ID']
@@ -15,6 +16,9 @@ headers = {
     "Client-Id": CLIENT_ID,
     "Authorization": f"Bearer {USER_ACCESS_TOKEN}",
 }
+
+db_client = pymongo.MongoClient(os.environ['REMOTE_MONGO_DB'])
+db = db_client['db_vibe_streams']   
 
 def extract_real_mp4_with_ytdlp(embed_url):
     """Uses yt-dlp to inspect the twitch page and extract the hidden direct .mp4 streaming link."""
@@ -135,24 +139,27 @@ ITEMS_PER_PAGE = 100
 def get_all_clips(category_id):
     started_at = get_yesterday_iso()
     clips = []
-    for i in range (0, 1):
+    for i in range (0, 5):  #get 500 clips
         clips_url = f"https://api.twitch.tv/helix/clips?game_id={category_id}&started_at={started_at}&first={ITEMS_PER_PAGE}"
         response = requests.get(clips_url, headers=headers)
         if response.status_code != 200:
             print("Token Expired or Auth Failed!")
             break
         clips.extend(response.json().get("data", []))
-    # print(clips)
+    print(f"Total raw clips: {len(clips)}")
     if len(clips) == 0:
         return
     index = 0
     final_clips = []
     for clip in clips:
         mp4_url = extract_real_mp4_with_ytdlp(clip['embed_url'])
+        index = index + 1
+        print(f"Finish getting mp4 at {index}")
         if mp4_url is not None:
             # print(mp4_url)
-            final_clips.append({    #save minium to optimize database
-                "t": clip['title'],
+            new_clip = {    #save minium to optimize database
+                "id": clip['id'],
+                "title": clip['title'],
                 "t": clip['thumbnail_url'],
                 "cr": clip['creator_name'],
                 "v": clip['view_count'],
@@ -160,14 +167,53 @@ def get_all_clips(category_id):
                 "c": category_id,
                 "m": mp4_url,
                 "ca": get_today_iso()
-            })
+            }
+            upsert_clip(new_clip)
+            final_clips.append(new_clip)
             #todo: save streamer id and info (for user to follow)
-        index = index + 1
-        if index == 3:
-            break
-    print(final_clips)
+        # if index == 3:
+        #     break
+    # print(final_clips)
     return final_clips
-#
+#upsert questions to collection
+def upsert_clip(collection, a_clip):
+    existed_doc = collection.find_one({'id': a_clip['id']})
+    if existed_doc == None:
+        #insert new document
+        collection.insert_one(a_clip)
+    else:
+        #update
+        collection.update_one({'id': a_clip['id']}, {'$set': a_clip})
+    # print(f"Finish upsert {a_clip['title']}")
+
+def upsert_clips_2_db(final_clips):
+    collection = db['tb_clips']
+    #find all ids in db
+    old_ids = []
+    old_clips = collection.find()
+    for old_clip in old_clips:
+        old_ids.append(old_clip['id'])
+    #
+    new_ids = []    #ids of all clips in db
+    for clip in final_clips:
+        upsert_clip(collection, clip)
+        new_ids.append(clip['id'])
+    #find ids that should be deleted
+    deleted_ids = []
+    for id in old_ids:
+        if id not in new_ids:
+            deleted_ids.append(id)
+    #delete old clips (flush the db)
+    print('Length of deleted ids: ' + str(len(deleted_ids)))
+    if len(deleted_ids) > 0:
+        collection.delete_many({'id': {'$in': deleted_ids}})
+    #
+###
 if __name__ == "__main__":
     # get_native_tiktok_feed()
-    get_all_clips(CATEGORY_IDS['music'])
+    print('=== START scraping: ' + get_today_iso())
+    final_clips = get_all_clips(CATEGORY_IDS['music'])
+    print('Total clips with mp4 link: ' + str(len(final_clips)))
+    if len(final_clips) > 0:
+        upsert_clips_2_db(final_clips)
+    print('=== END scraping: ' + get_today_iso())
