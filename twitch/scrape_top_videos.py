@@ -1,4 +1,5 @@
 import datetime
+import json
 import requests
 import os
 from dotenv import load_dotenv
@@ -153,9 +154,9 @@ def get_all_clips(category_id):
     final_clips = []
     for clip in clips:
         mp4_url = extract_real_mp4_with_ytdlp(clip['embed_url'])
-        index = index + 1
-        print(f"Finish getting mp4 at {index}")
         if mp4_url is not None:
+            index = index + 1
+            print(f"Finish getting mp4 at {index}")
             # print(mp4_url)
             new_clip = {    #save minium to optimize database
                 "id": clip['id'],
@@ -168,7 +169,7 @@ def get_all_clips(category_id):
                 "m": mp4_url,
                 "ca": get_today_iso()
             }
-            upsert_clip(new_clip)
+            # upsert_clip(new_clip)
             final_clips.append(new_clip)
             #todo: save streamer id and info (for user to follow)
         # if index == 3:
@@ -215,5 +216,8 @@ if __name__ == "__main__":
     final_clips = get_all_clips(CATEGORY_IDS['music'])
     print('Total clips with mp4 link: ' + str(len(final_clips)))
     if len(final_clips) > 0:
+        #save to file (Backup)
+        with open('final_clips.json', 'w') as f:
+            json.dump(final_clips, f)
         upsert_clips_2_db(final_clips)
-    print('=== END scraping: ' + get_today_iso())
+    print('=== END scraping: ' + get_today_iso())   #500 clips ~ 6 mins
