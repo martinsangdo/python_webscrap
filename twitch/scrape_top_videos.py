@@ -211,13 +211,22 @@ def upsert_clips_2_db(final_clips):
     #
 ###
 if __name__ == "__main__":
-    # get_native_tiktok_feed()
+    final_clips = []
+    
+    #if you want to scrape new clips, uncomment the following lines and comment out the file loading section
+    # with open('final_clips.json', 'r') as f:    #load from file (Backup)
+    #     final_clips = json.load(f)
+    # print('Total clips with mp4 link: ' + str(len(final_clips)))
+    # if len(final_clips) > 0:
+    #     upsert_clips_2_db(final_clips)
+
+
+
     print('=== START scraping: ' + get_today_iso())
     final_clips = get_all_clips(CATEGORY_IDS['music'])
     print('Total clips with mp4 link: ' + str(len(final_clips)))
     if len(final_clips) > 0:
-        #save to file (Backup)
-        with open('final_clips.json', 'w') as f:
+        with open('final_clips.json', 'w') as f:    #save to file (Backup)
             json.dump(final_clips, f)
         upsert_clips_2_db(final_clips)
     print('=== END scraping: ' + get_today_iso())   #500 clips ~ 6 mins
