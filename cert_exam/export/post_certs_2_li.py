@@ -303,6 +303,9 @@ def create_certifications_from_single_image_template(
     symbol_link_map = {}
     for symbol in post_info['symbols']:
         cert_details = tb_cert_metadata.find_one({'symbol':symbol})
+        if cert_details is None:
+            print('Cannot find cert details for symbol: ' + symbol)
+            continue
         # print(cert_details['name'])
         #landing page
         link = LANDING_PAGE_URL + cert_details['slug']

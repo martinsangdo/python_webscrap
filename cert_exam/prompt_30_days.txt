@@ -1,4 +1,4 @@
-Generate a 10 days schedule for posting on Linkedin.
+Generate a 5 days schedule for posting on Linkedin.
 Rules:
 - Each day posts for 3 certifications only
 - Do not use emoji in the content
@@ -53,7 +53,7 @@ Google Professional Cloud DevOps Engineer:GCP_PCDOE
 Google Professional Cloud Security Engineer:GCP_PCSE
 Google Professional Cloud Network Engineer:GCP_PCNE
 Google Professional Machine Learning Engineer:GCP_PMLE
-Microsoft Certified: Azure AI Fundamentals (AZ-AI-900):AZ_AI_900
+Microsoft Certified: Azure AI Fundamentals (AZ-AI-901):AZ_AI_901
 Microsoft Certified: Azure Data Fundamentals (DP-900):AZ_DP_900
 Microsoft Certified: Azure Database Administrator Associate (DP-300):AZ_DP_300
 Microsoft Certified: Azure Fundamentals (AZ-900):AZ_AZ_900
@@ -105,7 +105,7 @@ ITIL 4 Foundation:ITIL_FOUNDATION
 
 
 ===== AI
-Generate a 10 days schedule for posting on Linkedin.
+Generate a 5 days schedule for posting on Linkedin.
 Rules:
 - Each day posts for 3 certifications only
 - Do not use emoji in the content
@@ -129,7 +129,7 @@ PMI Cognitive Project Management in AI (CPMAI):PMI_CPMAI
 AWS Certified AI Practitioner (AIF-C01):AWS_AIF
 AWS Certified Generative AI Developer - Professional (AIP-C01):AWS_AIP_C01
 Google Generative AI Leader:GCP_GAL
-Microsoft Certified: Azure AI Fundamentals (AZ-AI-900):AZ_AI_900
+Microsoft Certified: Azure AI Fundamentals (AZ-AI-901):AZ_AI_901
 Databricks Certified Generative AI Engineer Associate:DTB_GAEA
 ISACA Advanced in AI Security Management (AAISM):ISACA_AAISM
 ISACA AI Fundamentals:ISACA_AIF
@@ -144,7 +144,7 @@ NVIDIA-Certified Professional: AI Infrastructure (NCP-AII):NCP_AII
 
 
 ===== PROJECT_MANAGEMENT
-Generate a 10 days schedule for posting on Linkedin.
+Generate a 5 days schedule for posting on Linkedin.
 Rules:
 - Each day posts for 3 certifications only
 - Do not use emoji in the content
@@ -174,7 +174,7 @@ PRINCE2 Project Management Foundation:PRINCE_PMF
 
 
 ===== AGILE
-Generate a 10 days schedule for posting on Linkedin.
+Generate a 5 days schedule for posting on Linkedin.
 Rules:
 - Each day posts for 3 certifications only
 - Do not use emoji in the content
@@ -206,7 +206,7 @@ Certified ScrumMaster (CSM):SCRUM_CSM
 
 
 ===== CLOUD
-Generate a 10 days schedule for posting on Linkedin.
+Generate a 5 days schedule for posting on Linkedin.
 Rules:
 - Each day posts for 3 certifications only
 - Do not use emoji in the content
@@ -242,7 +242,7 @@ ServiceNow Certified Application Developer (CAD):SERV_CAD
 
 
 ===== DATA_ENGINEER
-Generate a 10 days schedule for posting on Linkedin.
+Generate a 5 days schedule for posting on Linkedin.
 Rules:
 - Each day posts for 3 certifications only
 - Do not use emoji in the content
@@ -272,7 +272,7 @@ Snowflake SnowPro Advanced Data Engineer:SNOW_SADE
 
 
 ===== SOLUTIONS_ARCHITECT
-Generate a 10 days schedule for posting on Linkedin.
+Generate a 5 days schedule for posting on Linkedin.
 Rules:
 - Each day posts for 3 certifications only
 - Do not use emoji in the content
@@ -304,7 +304,7 @@ ITIL 4 Foundation:ITIL_FOUNDATION
 
 
 ===== DIGITAL_INTELLIGENCE
-Generate a 10 days schedule for posting on Linkedin.
+Generate a 5 days schedule for posting on Linkedin.
 Rules:
 - Each day posts for 3 certifications only
 - Do not use emoji in the content
@@ -340,7 +340,7 @@ NVIDIA-Certified Professional: Accelerated Data Science (NCP-ADS):NCP_ADS
 
 
 ===== SECURITY
-Generate a 10 days schedule for posting on Linkedin.
+Generate a 5 days schedule for posting on Linkedin.
 Rules:
 - Each day posts for 3 certifications only
 - Do not use emoji in the content
