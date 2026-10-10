@@ -1,5 +1,5 @@
 import os
-from typing import Optional, Dict, List, Any
+from typing import Optional, Dict, List, Any, Literal
 from pydantic import BaseModel, Field
 from google import genai
 from google.genai import types
@@ -27,9 +27,8 @@ class QuestionItem(BaseModel):
     latex_content: Optional[str] = Field(description="Standalone equation or formula in LaTeX.")
     
     # Visual / Chart variations
-    has_image_or_chart: bool = Field(description="True if this problem requires a diagram or chart.")
-    chart_type: Optional[str] = Field(description="'BAR', 'LINE', 'PIE', 'GEOMETRY_SVG', or null.")
-    chart_data: Optional[Dict[str, Any]] = Field(description="Structured JSON for charts (categories, values) or null.")
+    chart_type: Optional[Literal["BAR", "LINE", "PIE", "GEOMETRY_SVG"]] = Field(description="Chart/figure type this question needs, or null when it has none.")
+    chart_data: Optional[Dict[str, Any]] = Field(description="BAR/LINE/PIE: {'categories': [...], 'values': [...]}. GEOMETRY_SVG: {'svg': '<svg ...>'}. Null when chart_type is null.")
     
     # Options & Answers
     options_json: Optional[Dict[str, str]] = Field(description="{'A': '...', 'B': '...'} for MCQs, null for INTEGER_FILL.")
@@ -55,17 +54,26 @@ def generate_complete_practice_set(certification_id: str, level_code: str, set_t
     # 1. Fetch Metadata from DB
     cert = supabase.table("certifications").select("*").eq("id", certification_id).single().execute().data
     level = supabase.table("exam_levels").select("*").eq("certification_id", certification_id).eq("level_code", level_code).single().execute().data
-    rules = supabase.table("exam_structure_rules").select("*").eq("level_id", level["id"]).execute().data
+    # Rule ids follow the section order of the real paper
+    rules = supabase.table("exam_structure_rules").select("*").eq("level_id", level["id"]).order("id").execute().data
     topics = supabase.table("topics").select("*").execute().data
 
-    # Build human-readable breakdown string from database rules
+    # Lay sections out as consecutive question-number ranges and build the prompt breakdown
+    sections = []  # (first_position, last_position, rule)
     rules_breakdown = []
-    total_q_count = 0
+    next_position = 1
     for r in rules:
-        total_q_count += r["questions_count"]
+        first, last = next_position, next_position + r["questions_count"] - 1
+        next_position = last + 1
+        sections.append((first, last, r))
+        if r["chart_questions_count"]:
+            chart_rule = f"exactly {r['chart_questions_count']} question(s) MUST include a chart/figure, each with chart_type from {r['chart_types']}"
+        else:
+            chart_rule = "NO charts or figures: chart_type and chart_data MUST be null"
         rules_breakdown.append(
-            f"- Section: '{r['section_name']}' | Count: {r['questions_count']} | Type: {r['question_type']} | Points: +{r['points_per_correct']} (Penalty: -{r['penalty_points']})"
+            f"- Questions {first}-{last}: Section '{r['section_name']}' | Type: {r['question_type']} | Points: +{r['points_per_correct']} (Penalty: -{r['penalty_points']}) | Charts: {chart_rule}"
         )
+    total_q_count = next_position - 1
     rules_text = "\n".join(rules_breakdown)
 
     # 2. System Prompt configured with Exam Rules
@@ -85,7 +93,7 @@ def generate_complete_practice_set(certification_id: str, level_code: str, set_t
     2. For 'MCQ_5_OPTION', supply options A, B, C, D, E.
     3. For 'MCQ_4_OPTION', supply options A, B, C, D.
     4. For 'INTEGER_FILL', options_json MUST be null, and correct_answer MUST be an integer string.
-    5. Include 1 to 3 chart/graph questions (BAR, PIE, LINE) with structured `chart_data` (categories and values).
+    5. Chart/figure questions: follow the per-section chart requirement above exactly. Every other question has chart_type and chart_data set to null. For BAR/LINE/PIE, the stem must be answerable from `chart_data` ({{"categories": [...], "values": [...]}}); for GEOMETRY_SVG, `chart_data` is {{"svg": "<svg ...>...</svg>"}} drawing the figure the stem refers to.
     6. Ensure questions progress in difficulty and cover diverse topics (Logic, Arithmetic, Geometry, Number Theory, Combinatorics).
     7. All mathematical formulas must be formatted in valid LaTeX ($...$).
     """
@@ -109,10 +117,18 @@ def generate_complete_practice_set(certification_id: str, level_code: str, set_t
     positions = sorted(q.position for q in result.questions)
     if positions != list(range(1, total_q_count + 1)):
         raise ValueError(f"Expected positions 1..{total_q_count}, got {positions}")
-    allowed_types = {r["question_type"] for r in rules}
-    bad_types = {q.question_type for q in result.questions} - allowed_types
-    if bad_types:
-        raise ValueError(f"Unexpected question types from AI: {bad_types}")
+    by_position = {q.position: q for q in result.questions}
+    for first, last, r in sections:
+        section_qs = [by_position[p] for p in range(first, last + 1)]
+        wrong_type = [q.position for q in section_qs if q.question_type != r["question_type"]]
+        if wrong_type:
+            raise ValueError(f"'{r['section_name']}': questions {wrong_type} are not {r['question_type']}")
+        charted = [q for q in section_qs if q.chart_type is not None]
+        if len(charted) != r["chart_questions_count"]:
+            raise ValueError(f"'{r['section_name']}': expected {r['chart_questions_count']} chart question(s), got {len(charted)}")
+        bad_chart = [q.position for q in charted if q.chart_type not in r["chart_types"] or not q.chart_data]
+        if bad_chart:
+            raise ValueError(f"'{r['section_name']}': questions {bad_chart} have a disallowed chart_type or empty chart_data")
 
     # 4. Write everything: questions -> hidden set -> links -> publish.
     # The set stays unpublished until every row is in, and partial rows are removed on failure.
