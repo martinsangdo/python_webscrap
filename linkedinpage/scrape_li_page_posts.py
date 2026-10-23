@@ -14,7 +14,8 @@ def get_current_timestamp_milliseconds():
   return int(time.time() * 1000)
 
 # %%
-load_dotenv(override=True) 
+#always read the .env next to this script, not the one found from the current working directory
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env'), override=True)
 LI_REST_URI = os.environ['LI_REST_URI']
 LI_VERSION = os.environ['LI_VERSION']
 LI_ACCESS_TOKEN = os.environ['LI_ACCESS_TOKEN']
@@ -77,6 +78,10 @@ def upsert_page_posts(new_post):
 def scrape_posts():
     for author_id in author_ids:
         page_posts = get_request('posts?author=urn%3Ali%3Aorganization%3A'+str(author_id)+'&q=author&count=10&sortBy=LAST_MODIFIED')
+        if 'elements' not in page_posts:
+            #LinkedIn returned an error (expired token, no permission, rate limit...)
+            print('Failed to get posts of the page Id: ' + str(author_id) + ' -> ' + str(page_posts))
+            continue
         for page_post in page_posts['elements']:
             try:
                 #only get posts have media
@@ -92,7 +97,7 @@ def scrape_posts():
             except Exception as e:
                 #any error, skip this post
                 print(e)
-        print('Finished scraping the page Id: ' + author_id)
+        print('Finished scraping the page Id: ' + str(author_id))
     print('Finished scraping all pages')
 #test
 scrape_posts()
