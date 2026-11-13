@@ -54,6 +54,22 @@ def generate_complete_practice_set(certification_id: str, level_code: str, set_t
     # 1. Fetch Metadata from DB
     cert = supabase.table("certifications").select("*").eq("id", certification_id).single().execute().data
     level = supabase.table("exam_levels").select("*").eq("certification_id", certification_id).eq("level_code", level_code).single().execute().data
+    existing_sets = (
+        supabase.table("exam_sets")
+        .select("id")
+        .eq("certification_id", certification_id)
+        .eq("level_id", level["id"])
+        .eq("title", set_title)
+        .limit(1)
+        .execute()
+        .data
+    )
+    if existing_sets:
+        raise ValueError(
+            f"Practice set '{set_title}' already exists for {certification_id} / "
+            f"{level_code} (ID: {existing_sets[0]['id']})."
+        )
+
     # Rule ids follow the section order of the real paper
     rules = supabase.table("exam_structure_rules").select("*").eq("level_id", level["id"]).order("id").execute().data
     topics = supabase.table("topics").select("*").execute().data
@@ -201,10 +217,11 @@ def get_available_level_codes(certification_id: str) -> list[str]:
     return level_codes
 
 # Example usage:
-codes = get_available_level_codes("IKMC")
-# Output: ['PRE_ECOLIER', 'ECOLIER', 'BENJAMIN', 'CADET', 'JUNIOR', 'STUDENT']
+if __name__ == "__main__":
+    codes = get_available_level_codes("IKMC")
+    # Output: ['PRE_ECOLIER', 'ECOLIER', 'BENJAMIN', 'CADET', 'JUNIOR', 'STUDENT']
 
-generate_complete_practice_set(
+    generate_complete_practice_set(
         certification_id="SASMO",
         level_code="PRIMARY_4",
         set_title="SASMO 2026 Full Model Practice Set 1"
