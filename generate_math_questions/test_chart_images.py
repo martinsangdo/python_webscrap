@@ -58,6 +58,10 @@ class GeneratorTests(unittest.TestCase):
         self.bucket.get_public_url.side_effect = lambda p: 'https://example.com/' + p
         self.bucket.upload.side_effect = self.upload
         self.db.table.side_effect = self.table
+        self.db.rpc.side_effect = self.rpc
+        uuid_patch = patch.object(self.module, "uuid4", return_value=SimpleNamespace(hex="upload-id"))
+        uuid_patch.start()
+        self.addCleanup(uuid_patch.stop)
         self.module.supabase = self.db
         self.module.AI_AGENT = 'gemini'
         self.module.GEMINI_API_KEY = 'test-key'
@@ -68,6 +72,17 @@ class GeneratorTests(unittest.TestCase):
                  detailed_solution_latex='2+3=5', kid_friendly_hint='Add')
         plain = dict(q, position=2, chart_type=None, chart_data=None)
         self.module.ai_client.models.generate_content.return_value.text = json.dumps({'set_title': 'Test', 'total_questions': 2, 'questions': [q, plain]})
+
+    def rpc(self, name, payload):
+        self.assertEqual(name, 'save_complete_practice_set')
+        def execute():
+            self.events.append(('rpc', 'save', payload))
+            if self.fail == 'rpc':
+                raise RuntimeError('response lost after possible commit')
+            return SimpleNamespace(data={'set_id': 9, 'question_count': len(payload['p_questions'])})
+        query = MagicMock()
+        query.execute.side_effect = execute
+        return query
 
     def upload(self, *args, **kwargs):
         self.events.append(('upload', args[0]))
@@ -113,21 +128,22 @@ class GeneratorTests(unittest.TestCase):
 
     def test_upload_before_publication(self):
         self.run_generator()
-        path = 'SASMO/grade_4/PRIMARY_4/9/question_101.svg'
+        path = 'SASMO/grade_4/PRIMARY_4/upload-id/question_1.svg'
         args, kwargs = self.bucket.upload.call_args
         self.assertEqual(args[0], path)
         ET.fromstring(args[1])
         self.assertEqual(kwargs['file_options']['content-type'], 'image/svg+xml')
-        updates = [e for e in self.events if e[:2] == ('questions', 'update')]
-        self.assertEqual(updates, [('questions', 'update', {'image_url': 'https://example.com/' + path})])
-        self.assertEqual(self.events[-1], ('exam_sets', 'update', {'is_published': True}))
+        payload = self.events[-1][2]
+        self.assertEqual(self.events[-1][:2], ('rpc', 'save'))
+        self.assertEqual(payload['p_questions'][0]['image_url'], 'https://example.com/' + path)
+        self.assertFalse(any(e[1] in ('insert', 'update', 'delete') for e in self.events))
         self.bucket.remove.assert_not_called()
 
     def test_failed_answer_review_never_writes(self):
         self.module.review_practice_set.side_effect = ValueError('answer disagrees')
         with self.assertRaisesRegex(ValueError, 'answer disagrees'):
             self.run_generator()
-        self.assertFalse(any(e[1] == 'insert' for e in self.events))
+        self.assertFalse(any(e[1] in ('insert', 'save') for e in self.events))
         self.bucket.upload.assert_not_called()
 
     def test_persists_content_topic_instead_of_position_topic(self):
@@ -142,26 +158,52 @@ class GeneratorTests(unittest.TestCase):
             return query
         self.db.table.side_effect = table
         self.run_generator()
-        rows = next(e[2] for e in self.events if e[:2] == ('questions', 'insert'))
+        rows = next(e[2]['p_questions'] for e in self.events if e[:2] == ('rpc', 'save'))
         self.assertEqual([q['topic_id'] for q in rows], [1, 7])
 
-    def test_failures_cleanup_and_never_publish(self):
-        for failure in ('upload', 'update', 'cleanup'):
-            with self.subTest(failure=failure):
-                self.setUp()
-                self.fail = failure
-                with self.assertRaises(RuntimeError):
-                    self.run_generator()
-                self.bucket.remove.assert_called_once_with(['SASMO/grade_4/PRIMARY_4/9/question_101.svg'])
-                self.assertNotIn(('exam_sets', 'update', {'is_published': True}), self.events)
-                self.assertIn(('questions', 'delete', None), self.events)
+    def test_upload_failure_prevents_database_transaction(self):
+        self.fail = 'upload'
+        with self.assertRaisesRegex(RuntimeError, 'upload failed'):
+            self.run_generator()
+        self.db.rpc.assert_not_called()
+        self.bucket.remove.assert_called_once_with(['SASMO/grade_4/PRIMARY_4/upload-id/question_1.svg'])
+
+    def test_cleanup_failure_preserves_original_error(self):
+        self.fail = 'upload'
+        self.bucket.remove.side_effect = RuntimeError('cleanup failed')
+        with self.assertRaisesRegex(RuntimeError, 'upload failed') as caught:
+            self.run_generator()
+        self.assertIn('cleanup failed', caught.exception.__notes__[0])
+        self.db.rpc.assert_not_called()
+
+    def test_lost_commit_response_retains_images_and_does_not_retry(self):
+        self.fail = 'rpc'
+        with self.assertRaisesRegex(RuntimeError, 'response lost') as caught:
+            self.run_generator()
+        self.db.rpc.assert_called_once()
+        self.bucket.remove.assert_not_called()
+        self.assertIn('entire set or none', caught.exception.__notes__[0])
+        self.assertFalse(any(e[1] in ('insert', 'update', 'delete') for e in self.events))
+
+    def test_crash_during_upload_never_submits_transaction(self):
+        self.bucket.upload.side_effect = KeyboardInterrupt
+        with self.assertRaises(KeyboardInterrupt):
+            self.run_generator()
+        self.db.rpc.assert_not_called()
+
+    def test_crash_during_rpc_does_not_delete_assets(self):
+        self.db.rpc.side_effect = KeyboardInterrupt
+        with self.assertRaises(KeyboardInterrupt):
+            self.run_generator()
+        self.bucket.remove.assert_not_called()
 
     def test_duplicate_stops_generation(self):
         self.duplicate = True
-        with self.assertRaises(ValueError):
+        with self.assertRaises(self.module.PracticeSetAlreadyExistsError):
             self.run_generator()
         self.module.ai_client.models.generate_content.assert_not_called()
         self.bucket.upload.assert_not_called()
+        self.db.rpc.assert_not_called()
 
     def test_invalid_chart_prevents_writes(self):
         result = json.loads(self.module.ai_client.models.generate_content.return_value.text)
@@ -169,7 +211,7 @@ class GeneratorTests(unittest.TestCase):
         self.module.ai_client.models.generate_content.return_value.text = json.dumps(result)
         with self.assertRaises(ValueError):
             self.run_generator()
-        self.assertFalse(any(e[1] == 'insert' for e in self.events))
+        self.assertFalse(any(e[1] in ('insert', 'save') for e in self.events))
         self.bucket.upload.assert_not_called()
         self.assertEqual(self.module.ai_client.models.generate_content.call_count, 3)
 
@@ -197,7 +239,7 @@ class GeneratorTests(unittest.TestCase):
                 ]
                 self.run_generator()
                 self.assertEqual(self.module.ai_client.models.generate_content.call_count, 2)
-                self.assertEqual(sum(e[:2] == ('questions', 'insert') for e in self.events), 1)
+                self.assertEqual(sum(e[:2] == ('rpc', 'save') for e in self.events), 1)
                 call = self.module.ai_client.models.generate_content.call_args
                 self.assertIn('previous attempt failed validation', call.kwargs['contents'])
 
@@ -208,7 +250,7 @@ class GeneratorTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'after 2 attempts'):
             self.module.generate_complete_practice_set('SASMO', 'PRIMARY_4', 'Test', max_attempts=2)
         self.assertEqual(self.module.ai_client.models.generate_content.call_count, 2)
-        self.assertFalse(any(e[1] == 'insert' for e in self.events))
+        self.assertFalse(any(e[1] in ('insert', 'save') for e in self.events))
         self.bucket.upload.assert_not_called()
 
     def test_validation_log_precedes_success(self):
@@ -235,7 +277,7 @@ class GeneratorTests(unittest.TestCase):
         with self.assertRaises(httpx.HTTPStatusError):
             self.run_generator()
         self.assertEqual(self.module.ai_client.models.generate_content.call_count, 1)
-        self.assertFalse(any(e[1] == 'insert' for e in self.events))
+        self.assertFalse(any(e[1] in ('insert', 'save') for e in self.events))
 
     def test_no_charts_needs_no_storage(self):
         result = json.loads(self.module.ai_client.models.generate_content.return_value.text)
@@ -256,7 +298,7 @@ class GeneratorTests(unittest.TestCase):
         self.db.storage.from_.reset_mock()
         self.run_generator()
         self.db.storage.from_.assert_not_called()
-        self.assertEqual(self.events[-1], ('exam_sets', 'update', {'is_published': True}))
+        self.assertEqual(self.events[-1][:2], ('rpc', 'save'))
 
 
 if __name__ == '__main__':

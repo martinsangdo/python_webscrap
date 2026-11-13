@@ -1,7 +1,10 @@
 import os
 import json
 import re
+import math
+import time
 import httpx
+from uuid import uuid4
 from typing import Optional, Dict, List, Any, Literal
 from pydantic import BaseModel, Field
 from google import genai
@@ -117,6 +120,49 @@ def request_practice_set(system_prompt: str, user_prompt: str, expected_count=No
     return PracticeSetSchema.model_validate(payload)
 
 
+def groq_retry_delay(response, retry):
+    """Honor Groq's seconds header, then its human-readable retry duration."""
+    try:
+        seconds = float(response.headers.get("retry-after", ""))
+        if math.isfinite(seconds) and seconds >= 0:
+            return seconds + 1  # Avoid retrying on the reset boundary.
+    except (TypeError, ValueError):
+        pass
+    try:
+        message = response.json().get("error", {}).get("message", "")
+        match = re.search(r"try again in\s+((?:\d+(?:\.\d+)?(?:ms|h|m|s))+)", message, re.I)
+        if match:
+            units = {"h": 3600, "m": 60, "s": 1, "ms": 0.001}
+            seconds = sum(float(value) * units[unit.lower()] for value, unit in
+                          re.findall(r"(\d+(?:\.\d+)?)(ms|h|m|s)", match[1], re.I))
+            if math.isfinite(seconds):
+                return seconds + 1
+    except (ValueError, AttributeError, TypeError):
+        pass
+    return min(2 ** (retry + 1), 60)
+
+
+def post_groq_with_rate_limit_retry(*args, **kwargs):
+    """Retry only HTTP 429, independently of whole-set validation attempts."""
+    waited = 0.0
+    for retry in range(6):  # Initial request plus at most five retries.
+        response = httpx.post(*args, **kwargs)
+        if response.status_code != 429 or retry == 5:
+            return response
+        delay = groq_retry_delay(response, retry)
+        if waited + delay > 300:
+            return response  # Preserve the provider error; do not retry too early.
+        print(f"Groq rate limit: waiting {delay:.1f}s before retry {retry + 1}/5.", flush=True)
+        remaining = delay
+        while remaining > 0:
+            pause = min(remaining, 60)
+            time.sleep(pause)
+            remaining -= pause
+            if remaining > 0:
+                print(f"Groq rate-limit wait: {remaining:.1f}s remaining.", flush=True)
+        waited += delay
+
+
 def request_structured_json(system_prompt, user_prompt, schema, groq_format):
     """Use only the configured provider; validate its output before persistence."""
     global ai_client
@@ -144,7 +190,7 @@ def request_structured_json(system_prompt, user_prompt, schema, groq_format):
     else:
         # Constrained decoding prevents JSON syntax errors, including LaTeX escapes.
         # Local validation and exam-rule checks remain mandatory.
-        response = httpx.post(
+        response = post_groq_with_rate_limit_retry(
             "https://api.groq.com/openai/v1/chat/completions",
             headers={"Authorization": f"Bearer {key}"},
             json={
@@ -179,6 +225,8 @@ def request_structured_json(system_prompt, user_prompt, schema, groq_format):
             ):
                 raise ValueError(f"Groq output failed validation: {detail}") from None
             hint = " Check GROQ_MODEL and your account's model access." if response.status_code == 404 else ""
+            if response.status_code == 429:
+                hint = " Rate-limit retry budget exhausted or required wait exceeds five minutes. Retry later or review your Groq limits."
             raise httpx.HTTPStatusError(
                 f"Groq HTTP {response.status_code} for model {model}: {detail}.{hint}",
                 request=exc.request, response=exc.response,
@@ -308,7 +356,68 @@ def validate_practice_set(result, total_q_count, sections):
     }
 
 
+class PracticeSetAlreadyExistsError(ValueError):
+    """The certification, level and exact title already identify a saved set."""
+
+
 def generate_complete_practice_set(
+    certification_id: str, level_code: Optional[str] = None,
+    set_title: Optional[str] = None, grade: Optional[int] = None,
+    max_attempts: int = 3,
+):
+    """Generate one set for an explicit level, or all level/grade combinations.
+
+    Use keyword arguments to supply only certification_id and set_title.
+    Batch titles include level and grade; grade is not stored in a new column.
+    Batches skip existing sets and stop on other failures, retaining completed sets.
+    """
+    if not isinstance(set_title, str) or not set_title.strip():
+        raise ValueError("set_title is required and must be nonempty")
+    if isinstance(max_attempts, bool) or not isinstance(max_attempts, int) or max_attempts < 1:
+        raise ValueError("max_attempts must be a positive integer")
+    if grade is not None and (isinstance(grade, bool) or not isinstance(grade, int)):
+        raise ValueError("grade must be an integer")
+    if level_code is not None:
+        return _generate_single_practice_set(
+            certification_id, level_code, set_title, grade, max_attempts
+        )
+
+    levels = (
+        supabase.table("exam_levels")
+        .select("level_code, target_grade_min, target_grade_max")
+        .eq("certification_id", certification_id)
+        .order("target_grade_min")
+        .order("level_code")
+        .execute().data
+    )
+    planned_sets = []
+    for level in levels:
+        low, high = level['target_grade_min'], level['target_grade_max']
+        if type(low) is not int or type(high) is not int or low > high:
+            raise ValueError(f"Invalid grade range for {level['level_code']}")
+        grades = range(low, high + 1) if grade is None else ([grade] if low <= grade <= high else [])
+        for target_grade in grades:
+            title = f"{set_title} - {level['level_code']} - Grade {target_grade}"
+            if len(title) > 128:
+                raise ValueError("Batch set title exceeds 128 characters; use a shorter set_title")
+            planned_sets.append((level['level_code'], target_grade, title))
+    if not planned_sets:
+        raise ValueError(f"No matching levels/grades for {certification_id} (grade={grade})")
+
+    print(f"=== Generating {len(planned_sets)} practice sets for {certification_id} ===")
+    skipped = 0
+    for code, target_grade, title in planned_sets:
+        try:
+            _generate_single_practice_set(
+                certification_id, code, title, target_grade, max_attempts
+            )
+        except PracticeSetAlreadyExistsError as error:
+            skipped += 1
+            print(f"Skipping existing set: {error}")
+    print(f"=== Batch complete: {len(planned_sets) - skipped} created, {skipped} skipped ===")
+
+
+def _generate_single_practice_set(
     certification_id: str, level_code: str, set_title: str, grade: Optional[int] = None,
     max_attempts: int = 3,
 ):
@@ -347,7 +456,7 @@ def generate_complete_practice_set(
         .data
     )
     if existing_sets:
-        raise ValueError(
+        raise PracticeSetAlreadyExistsError(
             f"Practice set '{set_title}' already exists for {certification_id} / "
             f"{level_code} (ID: {existing_sets[0]['id']})."
         )
@@ -374,6 +483,8 @@ def generate_complete_practice_set(
             f"- Questions {first}-{last}: Section '{r['section_name']}' | Type: {r['question_type']} | Points: +{r['points_per_correct']} (Penalty: -{r['penalty_points']}) | Charts: {chart_rule}"
         )
     total_q_count = next_position - 1
+    if total_q_count <= 0:
+        raise ValueError("Exam structure must contain at least one question")
     rules_text = "\n".join(rules_breakdown)
 
     # 2. System Prompt configured with Exam Rules
@@ -440,9 +551,9 @@ def generate_complete_practice_set(
             print(f"Validated {len(result.questions)} questions and all charts successfully.")
             break
 
-    # 4. Write everything: questions -> hidden set -> links -> images -> publish.
-    # The set stays unpublished until every row is in, and partial rows are removed on failure.
+    # 4. Upload diagrams, then atomically persist the complete set through one RPC.
     q_payloads = [{
+        "position": q.position,
         "certification_id": certification_id,
         "level_id": level["id"],
         "topic_id": q.topic_id,
@@ -461,66 +572,57 @@ def generate_complete_practice_set(
         "is_ai_generated": True
     } for q in result.questions]
 
-    question_ids: List[int] = []
     uploaded_paths: List[str] = []
     bucket = supabase.storage.from_(DIAGRAM_BUCKET) if diagrams else None
-    set_id = None
+    # Upload IDs are independent of DB IDs so every asset exists before commit.
+    folder = diagram_folder(certification_id, level_code, level, uuid4().hex)
     try:
-        question_ids = [row["id"] for row in supabase.table("questions").insert(q_payloads).execute().data]
-
-        set_payload = {
-            "certification_id": certification_id,
-            "level_id": level["id"],
-            "title": set_title,
-            "description": f"Full practice exam set for {cert['full_name']} ({level_code}).",
-            "time_minutes": cert["default_time_minutes"],
-            "is_published": False,
-            "access_tier": "free"
-        }
-        set_id = supabase.table("exam_sets").insert(set_payload).execute().data[0]["id"]
-
-        links = [
-            {"set_id": set_id, "question_id": qid, "position": q.position}
-            for qid, q in zip(question_ids, result.questions)
-        ]
-        supabase.table("exam_set_questions").insert(links).execute()
-
-        folder = diagram_folder(certification_id, level_code, level, set_id)
-        for qid, q in zip(question_ids, result.questions):
-            if q.position not in diagrams:
+        for payload in q_payloads:
+            position = payload["position"]
+            if position not in diagrams:
                 continue
-            path = f"{folder}/question_{qid}.svg"
-            # Track attempted uploads too: a timeout may occur after storage commits.
+            path = f"{folder}/question_{position}.svg"
             uploaded_paths.append(path)
-            bucket.upload(path, diagrams[q.position], file_options={
+            bucket.upload(path, diagrams[position], file_options={
                 "content-type": "image/svg+xml", "upsert": "false"
             })
-            image_url = bucket.get_public_url(path)
-            updated = supabase.table("questions").update({"image_url": image_url}).eq("id", qid).execute().data
-            if not updated or updated[0].get("image_url") != image_url:
-                raise RuntimeError(f"Image URL was not saved for question {qid}")
-
-        supabase.table("exam_sets").update({"is_published": True}).eq("id", set_id).execute()
+            payload["image_url"] = bucket.get_public_url(path)
+            if not isinstance(payload["image_url"], str) or not payload["image_url"].strip():
+                raise ValueError(f"Missing image URL for question {position}")
     except Exception as error:
-        print("Practice set creation failed, rolling back partial rows and images...")
-        cleanup = []
-        if set_id:
-            cleanup.extend([
-                ("question links", lambda: supabase.table("exam_set_questions").delete().eq("set_id", set_id).execute()),
-                ("practice set", lambda: supabase.table("exam_sets").delete().eq("id", set_id).execute()),
-            ])
-        if question_ids:
-            cleanup.append(("questions", lambda: supabase.table("questions").delete().in_("id", question_ids).execute()))
+        # No transaction has been submitted yet; these assets cannot be referenced.
         if uploaded_paths:
-            cleanup.append(("diagram files", lambda: bucket.remove(uploaded_paths)))
-        for label, action in cleanup:
             try:
-                action()
+                bucket.remove(uploaded_paths)
             except Exception as cleanup_error:
-                error.add_note(f"Could not clean up {label}: {cleanup_error}")
+                error.add_note(f"Could not clean up diagram files: {cleanup_error}")
         raise
 
-    print(f"=== SUCCESS: Practice Set '{set_title}' (ID: {set_id}) with {len(question_ids)} questions Created & Published! ===")
+    set_payload = {
+        "certification_id": certification_id,
+        "level_id": level["id"],
+        "title": set_title,
+        "description": f"Full practice exam set for {cert['full_name']} ({level_code}).",
+        "time_minutes": cert["default_time_minutes"],
+    }
+    try:
+        saved = supabase.rpc("save_complete_practice_set", {
+            "p_set": set_payload, "p_questions": q_payloads,
+        }).execute().data
+        if (not isinstance(saved, dict) or not saved.get("set_id")
+                or saved.get("question_count") != len(q_payloads)):
+            raise RuntimeError("Unexpected atomic-save response")
+    except Exception as error:
+        # A timeout can occur AFTER commit. Never delete assets or DB rows here:
+        # the complete set may already reference them. Do not blindly retry.
+        error.add_note(
+            "Atomic save did not return confirmed success. The database has either "
+            "the entire set or none of it. Check certification, level and title "
+            "before retrying. Uploaded diagrams were retained at " + folder
+        )
+        raise
+
+    print(f"=== SUCCESS: Practice Set '{set_title}' (ID: {saved['set_id']}) with {saved['question_count']} questions Created & Published! ===")
 
 #find out what levels of a certification
 def get_available_level_codes(certification_id: str) -> list[str]:
@@ -542,8 +644,8 @@ if __name__ == "__main__":
     # Output: ['PRE_ECOLIER', 'ECOLIER', 'BENJAMIN', 'CADET', 'JUNIOR', 'STUDENT']
 
     generate_complete_practice_set(
-        certification_id="SASMO",
-        level_code="PRIMARY_4", #optional
-        grade=4,    #optional
-        set_title="SASMO 2026 Full Model Practice Set 2"
+        certification_id="MOEMS",   #required
+        # level_code="PRIMARY_4", #optional
+        # grade=4,    #optional
+        set_title="SASMO 2026 Practice" #required
     )

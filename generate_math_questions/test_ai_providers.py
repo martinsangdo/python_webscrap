@@ -148,6 +148,80 @@ class ProviderTests(unittest.TestCase):
         result = self.module.request_practice_set('Rules', 'Generate')
         self.assertEqual(set(result.questions[0].options_json), set('ABCD'))
 
+    def rate_limit_response(self, message='Please try again in 22.8825s.', headers=None):
+        return httpx.Response(429, headers=headers or {},
+            request=httpx.Request('POST', 'https://api.groq.com/openai/v1/chat/completions'),
+            json={'error': {'message': message}})
+
+    @patch('ai_questions.time.sleep')
+    @patch('ai_questions.httpx.post')
+    def test_rate_limit_retries_identical_request_then_succeeds(self, post, sleep):
+        self.module.AI_AGENT = 'groq'
+        post.side_effect = [self.rate_limit_response(), self.response()]
+        result = self.module.request_practice_set('Rules', 'Generate')
+        self.assertEqual(result.set_title, 'Test')
+        sleep.assert_called_once_with(23.8825)
+        self.assertEqual(post.call_args_list[0], post.call_args_list[1])
+
+    @patch('ai_questions.time.sleep')
+    @patch('ai_questions.httpx.post')
+    def test_retry_after_header_takes_precedence(self, post, sleep):
+        self.module.AI_AGENT = 'groq'
+        post.side_effect = [self.rate_limit_response(headers={'retry-after': '25'}), self.response()]
+        self.module.request_practice_set('Rules', 'Generate')
+        sleep.assert_called_once_with(26)
+
+    @patch('ai_questions.time.sleep')
+    @patch('ai_questions.httpx.post')
+    def test_repeated_rate_limits_are_bounded(self, post, sleep):
+        self.module.AI_AGENT = 'groq'
+        post.return_value = self.rate_limit_response(headers={'retry-after': '1'})
+        with self.assertRaisesRegex(httpx.HTTPStatusError, 'retry budget'):
+            self.module.request_practice_set('Rules', 'Generate')
+        self.assertEqual(post.call_count, 6)
+        self.assertEqual(sleep.call_count, 5)
+
+    @patch('ai_questions.time.sleep')
+    @patch('ai_questions.httpx.post')
+    def test_long_rate_limit_does_not_retry_early(self, post, sleep):
+        self.module.AI_AGENT = 'groq'
+        post.return_value = self.rate_limit_response('Please try again in 1h2m3s.')
+        with self.assertRaises(httpx.HTTPStatusError):
+            self.module.request_practice_set('Rules', 'Generate')
+        post.assert_called_once()
+        sleep.assert_not_called()
+
+    @patch('ai_questions.time.sleep')
+    @patch('ai_questions.httpx.post')
+    def test_cumulative_wait_budget(self, post, sleep):
+        self.module.AI_AGENT = 'groq'
+        post.return_value = self.rate_limit_response(headers={'retry-after': '100'})
+        with self.assertRaises(httpx.HTTPStatusError):
+            self.module.request_practice_set('Rules', 'Generate')
+        self.assertEqual(post.call_count, 3)
+        self.assertEqual(sum(c.args[0] for c in sleep.call_args_list), 202)
+        self.assertTrue(all(c.args[0] <= 60 for c in sleep.call_args_list))
+
+    def test_malformed_retry_metadata_uses_backoff(self):
+        response = self.rate_limit_response('No retry hint', headers={'retry-after': 'nan'})
+        self.assertEqual(self.module.groq_retry_delay(response, 2), 8)
+        response = self.rate_limit_response('Please try again in 1m2.5s.', headers={'retry-after': '-1'})
+        self.assertEqual(self.module.groq_retry_delay(response, 0), 63.5)
+
+    @patch('ai_questions.time.sleep')
+    @patch('ai_questions.httpx.post')
+    def test_non_rate_limit_errors_are_not_retried(self, post, sleep):
+        self.module.AI_AGENT = 'groq'
+        for status in (400, 401, 403, 404, 500):
+            post.reset_mock()
+            post.return_value = httpx.Response(status,
+                request=httpx.Request('POST', 'https://api.groq.com/openai/v1/chat/completions'),
+                json={'error': {'message': 'error'}})
+            with self.subTest(status=status), self.assertRaises(httpx.HTTPStatusError):
+                self.module.request_practice_set('Rules', 'Generate')
+            post.assert_called_once()
+        sleep.assert_not_called()
+
 
 if __name__ == '__main__':
     unittest.main()
