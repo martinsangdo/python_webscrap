@@ -1,0 +1,5 @@
+google-genai
+matplotlib
+pydantic>=2
+python-dotenv
+supabase

@@ -5,6 +5,7 @@ from google import genai
 from google.genai import types
 from supabase import create_client, Client
 from dotenv import load_dotenv
+from chart_images import diagram_folder, render_chart_svg
 load_dotenv(override=True) 
 
 # Environment Setup
@@ -12,6 +13,7 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") # Service key to bypass RLS write policies
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GEMINI_MODEL = "gemini-3.8-flash"
+DIAGRAM_BUCKET = "question-diagrams"
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 ai_client = genai.Client(api_key=GEMINI_API_KEY)
@@ -112,6 +114,7 @@ def generate_complete_practice_set(certification_id: str, level_code: str, set_t
     5. Chart/figure questions: follow the per-section chart requirement above exactly. Every other question has chart_type and chart_data set to null. For BAR/LINE/PIE, the stem must be answerable from `chart_data` ({{"categories": [...], "values": [...]}}); for GEOMETRY_SVG, `chart_data` is {{"svg": "<svg ...>...</svg>"}} drawing the figure the stem refers to.
     6. Ensure questions progress in difficulty and cover diverse topics (Logic, Arithmetic, Geometry, Number Theory, Combinatorics).
     7. All mathematical formulas must be formatted in valid LaTeX ($...$).
+    8. BAR/LINE/PIE chart_data may include title, x_label, and y_label (include units when applicable). Values must be finite numbers, with one value per category. GEOMETRY_SVG must have a viewBox and use only basic SVG shapes, paths, groups, and text, with presentation attributes instead of CSS. No scripts, external resources, or embedded images.
     """
 
     print(f"Requesting full practice set from Gemini ({GEMINI_MODEL})...")
@@ -146,7 +149,14 @@ def generate_complete_practice_set(certification_id: str, level_code: str, set_t
         if bad_chart:
             raise ValueError(f"'{r['section_name']}': questions {bad_chart} have a disallowed chart_type or empty chart_data")
 
-    # 4. Write everything: questions -> hidden set -> links -> publish.
+    # Render before any writes so malformed charts cannot leave partial records.
+    diagram_folder(certification_id, level_code, level, 0)
+    diagrams = {
+        q.position: render_chart_svg(q.chart_type, q.chart_data)
+        for q in result.questions if q.chart_type is not None
+    }
+
+    # 4. Write everything: questions -> hidden set -> links -> images -> publish.
     # The set stays unpublished until every row is in, and partial rows are removed on failure.
     q_payloads = [{
         "certification_id": certification_id,
@@ -169,6 +179,8 @@ def generate_complete_practice_set(certification_id: str, level_code: str, set_t
     } for q in result.questions]
 
     question_ids: List[int] = []
+    uploaded_paths: List[str] = []
+    bucket = supabase.storage.from_(DIAGRAM_BUCKET) if diagrams else None
     set_id = None
     try:
         question_ids = [row["id"] for row in supabase.table("questions").insert(q_payloads).execute().data]
@@ -190,14 +202,39 @@ def generate_complete_practice_set(certification_id: str, level_code: str, set_t
         ]
         supabase.table("exam_set_questions").insert(links).execute()
 
+        folder = diagram_folder(certification_id, level_code, level, set_id)
+        for qid, q in zip(question_ids, result.questions):
+            if q.position not in diagrams:
+                continue
+            path = f"{folder}/question_{qid}.svg"
+            # Track attempted uploads too: a timeout may occur after storage commits.
+            uploaded_paths.append(path)
+            bucket.upload(path, diagrams[q.position], file_options={
+                "content-type": "image/svg+xml", "upsert": "false"
+            })
+            image_url = bucket.get_public_url(path)
+            updated = supabase.table("questions").update({"image_url": image_url}).eq("id", qid).execute().data
+            if not updated or updated[0].get("image_url") != image_url:
+                raise RuntimeError(f"Image URL was not saved for question {qid}")
+
         supabase.table("exam_sets").update({"is_published": True}).eq("id", set_id).execute()
-    except Exception:
-        print("Database write failed, rolling back partial rows...")
+    except Exception as error:
+        print("Practice set creation failed, rolling back partial rows and images...")
+        cleanup = []
         if set_id:
-            supabase.table("exam_set_questions").delete().eq("set_id", set_id).execute()
-            supabase.table("exam_sets").delete().eq("id", set_id).execute()
+            cleanup.extend([
+                ("question links", lambda: supabase.table("exam_set_questions").delete().eq("set_id", set_id).execute()),
+                ("practice set", lambda: supabase.table("exam_sets").delete().eq("id", set_id).execute()),
+            ])
         if question_ids:
-            supabase.table("questions").delete().in_("id", question_ids).execute()
+            cleanup.append(("questions", lambda: supabase.table("questions").delete().in_("id", question_ids).execute()))
+        if uploaded_paths:
+            cleanup.append(("diagram files", lambda: bucket.remove(uploaded_paths)))
+        for label, action in cleanup:
+            try:
+                action()
+            except Exception as cleanup_error:
+                error.add_note(f"Could not clean up {label}: {cleanup_error}")
         raise
 
     print(f"=== SUCCESS: Practice Set '{set_title}' (ID: {set_id}) with {len(question_ids)} questions Created & Published! ===")
@@ -224,5 +261,5 @@ if __name__ == "__main__":
     generate_complete_practice_set(
         certification_id="SASMO",
         level_code="PRIMARY_4",
-        set_title="SASMO 2026 Full Model Practice Set 1"
+        set_title="SASMO 2026 Full Model Practice Set 2"
     )
