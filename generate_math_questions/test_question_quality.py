@@ -48,6 +48,21 @@ class QualityTests(unittest.TestCase):
         self.assertEqual([q.position for q in result.questions], list(range(1, 8)))
         self.assertTrue(all(q.topic_id == 5 for q in result.questions))
 
+    def test_gemini_reviews_large_groups_in_chunks_of_three(self):
+        positions = [2, 4, 7, 9, 12, 14, 20]
+        result = self.module.PracticeSetSchema(set_title='Test', total_questions=7,
+            questions=[self.q.model_copy(update={'position': p}) for p in positions])
+        received = []
+        def respond(system, user, schema, wire):
+            batch = json.loads(user)['questions']
+            received.append([q['position'] for q in batch])
+            return {'questions': [dict(self.review['questions'][0], position=q['position']) for q in batch]}
+        with patch.object(self.module, 'AI_AGENT', 'gemini'), patch.object(
+                self.module, 'request_structured_json', side_effect=respond):
+            self.module.review_practice_set(result, self.topics)
+        self.assertEqual(received, [[2, 4, 7], [9, 12, 14], [20]])
+        self.assertEqual([q.position for q in result.questions], positions)
+
     def test_review_failure_does_not_apply_partial_updates(self):
         for status in (413, 401, 429, 500):
             result = self.module.PracticeSetSchema(set_title='Test', total_questions=4,
@@ -83,7 +98,7 @@ class QualityTests(unittest.TestCase):
             {'correct_answer': 'E'}, {'correct_answer': '8'},
             {'options_json': {'A': '1', 'B': '1', 'C': '2', 'D': '3'}},
             {'options_json': {'A': '1'}}, {'topic_id': 999},
-            {'stem_text': 'Compute $2+3'}, {'latex_content': '$2+3$'},
+            {'stem_text': 'Compute $2+3'}, {'latex_content': '$2+3'},
             {'question_type': 'INTEGER_FILL', 'options_json': None, 'correct_answer': '1.5'},
         ):
             with self.subTest(update=update), self.assertRaises(ValueError):

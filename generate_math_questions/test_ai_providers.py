@@ -48,12 +48,64 @@ class ProviderTests(unittest.TestCase):
         self.assertEqual(result.total_questions, 0)
         post.assert_not_called()
 
+    def test_gemini_uses_explicit_schema_and_numeric_count_bounds(self):
+        self.module.AI_AGENT = 'gemini'
+        with patch('ai_questions.genai.Client') as client:
+            client.return_value.models.generate_content.return_value.text = json.dumps(self.payload)
+            self.module.request_practice_set('Rules', 'Generate', expected_count=0)
+        config = client.return_value.models.generate_content.call_args.kwargs['config']
+        schema = config.response_json_schema
+        count = schema['properties']['total_questions']
+        self.assertNotIn('enum', count)
+        self.assertEqual((count['minimum'], count['maximum']), (0, 0))
+        question = schema['$defs']['QuestionItem']['properties']
+        for field in ('chart_data', 'options_json'):
+            for variant in question[field]['anyOf']:
+                if variant.get('type') == 'object':
+                    self.assertTrue(variant['properties'])
+                    self.assertIs(variant['additionalProperties'], False)
+        self.assertEqual(self.module.groq_response_format(3)['json_schema']['schema']
+                         ['properties']['total_questions']['enum'], [3])
+
+    def test_gemini_removes_array_bounds_without_mutating_shared_schema(self):
+        self.module.AI_AGENT = 'gemini'
+        schema = self.module.gemini_practice_set_json_schema(30)
+        original = json.loads(json.dumps(schema))
+        with patch('ai_questions.genai.Client') as client:
+            client.return_value.models.generate_content.return_value.text = '{}'
+            self.module.request_structured_json('Rules', 'Generate', schema, {})
+        sent = client.return_value.models.generate_content.call_args.kwargs['config'].response_json_schema
+        self.assertNotIn('minItems', sent['properties']['questions'])
+        self.assertNotIn('maxItems', sent['properties']['questions'])
+        self.assertEqual(schema, original)
+        review = {'properties': {'questions': {'type': 'array', 'minItems': 30,
+                  'maxItems': 30, 'items': {'type': 'object'}}}}
+        self.assertNotIn('maxItems', self.module.gemini_wire_schema(review)['properties']['questions'])
+        self.assertEqual(review['properties']['questions']['maxItems'], 30)
+
     @patch('ai_questions.httpx.post')
     def test_groq_rejects_invalid_or_truncated_output(self, post):
         self.module.AI_AGENT = 'groq'
         for content, reason in [('', 'stop'), ('{}', 'stop'), ('not json', 'stop'), ('{}', 'length')]:
             post.return_value = self.response(content, reason)
             with self.subTest(content=content, reason=reason), self.assertRaises(ValueError):
+                self.module.request_practice_set('Rules', 'Generate')
+
+    @patch('ai_questions.httpx.post')
+    def test_groq_length_finish_is_an_explicit_output_limit(self, post):
+        self.module.AI_AGENT = 'groq'
+        post.return_value = self.response(reason='length')
+        with self.assertRaises(self.module.ResponseTokenLimitError):
+            self.module.request_practice_set('Rules', 'Generate')
+
+    def test_gemini_max_tokens_is_detected_before_parsing_partial_json(self):
+        from types import SimpleNamespace
+        self.module.AI_AGENT = 'gemini'
+        with patch('ai_questions.genai.Client') as client:
+            client.return_value.models.generate_content.return_value = SimpleNamespace(
+                text='{incomplete', candidates=[SimpleNamespace(
+                    finish_reason=self.module.types.FinishReason.MAX_TOKENS)])
+            with self.assertRaises(self.module.ResponseTokenLimitError):
                 self.module.request_practice_set('Rules', 'Generate')
 
     @patch('ai_questions.httpx.post')
@@ -86,6 +138,66 @@ class ProviderTests(unittest.TestCase):
             json={'error': {'code': 'json_validate_failed', 'message': 'Generated JSON does not match the expected schema'}})
         with self.assertRaisesRegex(ValueError, 'Groq output failed validation'):
             self.module.request_practice_set('Rules', 'Generate')
+
+    def root_array_error(self, failed_generation, *, message=None):
+        return httpx.Response(400,
+            request=httpx.Request('POST', 'https://api.groq.com/openai/v1/chat/completions'),
+            json={'error': {'code': 'json_validate_failed',
+                'message': message or ("Generated JSON does not match the expected schema. "
+                    "Error: jsonschema: '' does not validate with /type: expected object, but got array"),
+                'failed_generation': failed_generation}})
+
+    def recovery_question(self, position=4):
+        return dict(position=position, topic_id=1, section_name='A', question_type='MCQ_4_OPTION',
+            stem_text='Find the sum of two and three.', latex_content=None,
+            chart_type=None, chart_data=None, options_json={'A': '3', 'B': '4', 'C': '5', 'D': '6', 'E': None},
+            correct_answer='C', points=2, penalty_points=0, difficulty_rating=1,
+            detailed_solution_latex='The sum is five.', kid_friendly_hint='Add the quantities.')
+
+    @patch('ai_questions.httpx.post')
+    def test_recovers_complete_root_array_using_requested_title_and_positions(self, post):
+        self.module.AI_AGENT = 'groq'
+        questions = [self.recovery_question(4), self.recovery_question(7)]
+        post.return_value = self.root_array_error(json.dumps(questions))
+        with patch('builtins.print') as output:
+            result = self.module.request_practice_set('Rules', 'Generate', 2,
+                                                      positions=[4, 7], set_title='Requested title')
+        self.assertEqual(result.set_title, 'Requested title')
+        self.assertEqual(result.total_questions, 2)
+        self.assertEqual([q.position for q in result.questions], [4, 7])
+        self.assertNotIn('E', result.questions[0].options_json)
+        self.assertEqual(result.questions[0].correct_answer, 'C')
+        post.assert_called_once()
+        sent = post.call_args.kwargs['json']
+        self.assertIn('Never return a bare array', sent['messages'][0]['content'])
+        self.assertTrue(sent['response_format']['json_schema']['strict'])
+        self.assertNotIn(questions[0]['stem_text'], str(output.call_args_list))
+
+    @patch('ai_questions.httpx.post')
+    def test_array_recovery_rejects_missing_malformed_incomplete_or_invalid_data(self, post):
+        self.module.AI_AGENT = 'groq'
+        q = self.recovery_question()
+        cases = [None, '[broken', json.dumps([]), json.dumps([q, q]),
+                 json.dumps([dict(q, position=9)]), json.dumps([{'position': 4}]),
+                 json.dumps({'questions': [q]}), json.dumps([dict(q, chart_type='UNKNOWN')])]
+        for failed in cases:
+            post.return_value = self.root_array_error(failed)
+            with self.subTest(failed=failed), self.assertRaises(self.module.GroqOutputValidationError):
+                self.module.request_practice_set('Rules', 'Generate', 1, positions=[4], set_title='Test')
+
+    @patch('ai_questions.httpx.post')
+    def test_array_recovery_is_limited_to_top_level_shape_error(self, post):
+        self.module.AI_AGENT = 'groq'
+        failed = json.dumps([self.recovery_question()])
+        for message in ('Generated JSON does not match the expected schema.',
+                        "Generated JSON does not match the expected schema. Error: jsonschema: '/questions/0' "
+                        'does not validate with /type: expected object, but got array'):
+            post.return_value = self.root_array_error(failed, message=message)
+            with self.subTest(message=message), self.assertRaises(self.module.GroqOutputValidationError):
+                self.module.request_practice_set('Rules', 'Generate', 1, positions=[4], set_title='Test')
+        post.return_value = self.root_array_error(failed)
+        with self.assertRaises(self.module.GroqOutputValidationError):
+            self.module.request_practice_set('Rules', 'Generate', 1, positions=[4])
 
     @patch('ai_questions.httpx.post')
     def test_invalid_config(self, post):
@@ -129,11 +241,11 @@ class ProviderTests(unittest.TestCase):
         self.assertNotIn('minItems', self.module.practice_set_json_schema()['properties']['questions'])
 
     @patch('ai_questions.httpx.post')
-    def test_latex_and_svg_survive_strict_response(self, post):
+    def test_latex_and_geometry_description_survive_strict_response(self, post):
         self.module.AI_AGENT = 'groq'
         question = dict(position=1, topic_id=1, section_name='Test', question_type='INTEGER_FILL',
             stem_text='Find the radius.', latex_content=r'$\\frac{4}{2}$',
-            chart_type='GEOMETRY_SVG', chart_data={'svg': '<svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="2"/></svg>'},
+            chart_type='GEOMETRY_SVG', chart_data={'diagram_description': 'A circle with centre O and diameter 4 cm.'},
             options_json=None, correct_answer='2', points=2, penalty_points=0,
             difficulty_rating=1, detailed_solution_latex=r'$\\frac{4}{2}=2$', kid_friendly_hint='Halve it.')
         self.payload.update(total_questions=1, questions=[question])

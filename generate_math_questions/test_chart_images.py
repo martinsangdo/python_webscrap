@@ -70,8 +70,50 @@ class GeneratorTests(unittest.TestCase):
                  chart_type='BAR', chart_data={'categories': ['A', 'B'], 'values': [2, 3]}, options_json=None,
                  correct_answer='5', points=2, penalty_points=0, difficulty_rating=1,
                  detailed_solution_latex='2+3=5', kid_friendly_hint='Add')
-        plain = dict(q, position=2, chart_type=None, chart_data=None)
+        plain = dict(q, position=2, stem_text='What is 8 minus 3?', chart_type=None, chart_data=None)
         self.module.ai_client.models.generate_content.return_value.text = json.dumps({'set_title': 'Test', 'total_questions': 2, 'questions': [q, plain]})
+        self.module.ai_client.models.generate_content.side_effect = self.provider_response
+        plan_patch = patch.object(self.module, 'request_whole_set_plan', side_effect=self.fake_plan)
+        plan_patch.start()
+        self.addCleanup(plan_patch.stop)
+
+    def group_payload(self, payload, prompt):
+        # Valid full fixtures answer only the requested group. Malformed fixtures
+        # remain malformed so coverage/count rejection tests still exercise production.
+        if (payload.get('total_questions') == 2
+                and sorted(q['position'] for q in payload['questions']) == [1, 2]):
+            requested = json.JSONDecoder().raw_decode(prompt)[0]['assigned_questions']
+            positions = {q['position'] for q in requested}
+            return dict(payload, total_questions=len(positions),
+                        questions=[q for q in payload['questions'] if q['position'] in positions])
+        return payload
+
+    def provider_response(self, **kwargs):
+        text = self.module.ai_client.models.generate_content.return_value.text
+        try:
+            payload = self.group_payload(json.loads(text), kwargs['contents'])
+            text = json.dumps(payload)
+        except ValueError:
+            pass
+        return SimpleNamespace(text=text, candidates=[])
+
+    def fake_plan(self, context, sections, topics, max_attempts):
+        try:
+            payload = json.loads(self.module.ai_client.models.generate_content.return_value.text)
+            generated = {q['position']: q for q in payload['questions']}
+        except (ValueError, TypeError):
+            generated = {}
+        slots = []
+        for first, last, rule in sections:
+            for p in range(first, last + 1):
+                slots.append(self.module.PlannedQuestion(
+                    position=p, topic_id=generated.get(p, {}).get('topic_id', 1),
+                    skill='Arithmetic', problem_style='Word problem',
+                    scenario='Count objects in a display' if p == 1 else 'Calculate change after shopping',
+                    difficulty_rating=1,
+                    chart_type=rule['chart_types'][0] if p - first < rule['chart_questions_count'] else None,
+                ))
+        return self.module.WholeSetPlan(questions=slots)
 
     def rpc(self, name, payload):
         self.assertEqual(name, 'save_complete_practice_set')
@@ -125,6 +167,124 @@ class GeneratorTests(unittest.TestCase):
 
     def run_generator(self):
         self.module.generate_complete_practice_set('SASMO', 'PRIMARY_4', 'Test')
+
+    def geometry_payload(self):
+        payload = json.loads(self.module.ai_client.models.generate_content.return_value.text)
+        payload['questions'][0].update(chart_type='GEOMETRY_SVG', chart_data={
+            'diagram_description': 'Draw a circle with centre O and a labelled radius of 2 cm.',
+        })
+        original_table = self.db.table.side_effect
+        def table(name):
+            query = original_table(name)
+            if name == 'exam_structure_rules':
+                original_execute = query.execute.side_effect
+                def execute():
+                    response = original_execute()
+                    response.data[0]['chart_types'] = ['GEOMETRY_SVG']
+                    return response
+                query.execute.side_effect = execute
+            return query
+        self.db.table.side_effect = table
+        return payload
+
+    def test_geometry_is_generated_separately_before_review_and_save(self):
+        payload = self.geometry_payload()
+        svg = {'svg': "<svg viewBox='0 0 100 100'><circle cx='50' cy='50' r='20'/></svg>"}
+        calls = []
+        def request(system, user, schema, wire):
+            calls.append(wire['json_schema']['name'])
+            if calls[-1] == 'practice_set':
+                self.assertIn('Do not generate SVG or XML', system)
+                variants = wire['json_schema']['schema']['$defs']['QuestionItem']['properties']['chart_data']['anyOf']
+                self.assertFalse(any('svg' in v.get('properties', {}) for v in variants))
+                return self.group_payload(payload, user)
+            sent = json.loads(user)
+            self.assertEqual(sent['diagram_description'], payload['questions'][0]['chart_data']['diagram_description'])
+            for field in ('topics', 'correct_answer', 'detailed_solution_latex', 'kid_friendly_hint'):
+                self.assertNotIn(field, sent)
+            return svg
+        def review(result, topics):
+            if result.questions[0].chart_type == 'GEOMETRY_SVG':
+                self.assertEqual(result.questions[0].chart_data, svg)
+            self.bucket.upload.assert_not_called()
+            self.db.rpc.assert_not_called()
+        self.module.review_practice_set.side_effect = review
+        with patch.object(self.module, 'request_structured_json', side_effect=request):
+            self.run_generator()
+        self.assertEqual(calls, ['practice_set', 'practice_set', 'geometry_diagram'])
+        rows = self.db.rpc.call_args.args[1]['p_questions']
+        self.assertEqual(rows[0]['chart_data'], svg)
+        self.assertNotIn('diagram_description', json.dumps(rows))
+        ET.fromstring(self.bucket.upload.call_args.args[1])
+
+    def test_invalid_svg_retries_only_diagram(self):
+        payload = self.geometry_payload()
+        valid_svg = {'svg': "<svg viewBox='0 0 10 10'><circle cx='5' cy='5' r='2'/></svg>"}
+        unsafe_svg = {'svg': "<svg viewBox='0 0 10 10'><script/></svg>"}
+        with patch.object(self.module, 'request_structured_json', side_effect=[
+                dict(payload, total_questions=1, questions=[payload['questions'][1]]),
+                dict(payload, total_questions=1, questions=[payload['questions'][0]]), unsafe_svg, valid_svg]) as request:
+            self.run_generator()
+        names = [c.args[3]['json_schema']['name'] for c in request.call_args_list]
+        self.assertEqual(names, ['practice_set', 'practice_set', 'geometry_diagram', 'geometry_diagram'])
+        self.assertIn('Previous SVG failed validation', request.call_args_list[-1].args[1])
+        self.db.rpc.assert_called_once()
+
+    def test_failed_svg_never_reviews_uploads_or_saves(self):
+        payload = self.geometry_payload()
+        with patch.object(self.module, 'request_structured_json', side_effect=[
+                dict(payload, total_questions=1, questions=[payload['questions'][1]]),
+                dict(payload, total_questions=1, questions=[payload['questions'][0]])] + [{'svg': 'bad XML'}] * 3) as request:
+            with self.assertRaisesRegex(RuntimeError, 'SVG generation failed for question 1'):
+                self.run_generator()
+        self.assertEqual(request.call_count, 5)
+        self.module.review_practice_set.assert_called_once()
+        self.assertEqual(self.module.review_practice_set.call_args.args[0].questions[0].position, 2)
+        self.bucket.upload.assert_not_called()
+        self.db.rpc.assert_not_called()
+
+    def test_later_diagram_failure_keeps_all_original_descriptions(self):
+        payload = self.geometry_payload()
+        payload['questions'][1].update(chart_type='GEOMETRY_SVG', chart_data={
+            'diagram_description': 'A square with side length 3 cm.',
+        })
+        result = self.module.PracticeSetSchema.model_validate(payload)
+        original = result.model_dump()
+        valid_svg = {'svg': "<svg viewBox='0 0 10 10'><circle cx='5' cy='5' r='2'/></svg>"}
+        with patch.object(self.module, 'request_structured_json', side_effect=[valid_svg, {'svg': 'bad'}]):
+            with self.assertRaisesRegex(RuntimeError, 'question 2'):
+                self.module.generate_geometry_diagrams(result, max_attempts=1)
+        self.assertEqual(result.model_dump(), original)
+        self.bucket.upload.assert_not_called()
+        self.db.rpc.assert_not_called()
+
+    def test_missing_geometry_description_does_not_request_svg(self):
+        payload = self.geometry_payload()
+        payload['questions'][0]['chart_data'] = {'svg': '<svg/>'}
+        with patch.object(self.module, 'request_structured_json', side_effect=[
+                dict(payload, total_questions=1, questions=[payload['questions'][1]])] + [
+                dict(payload, total_questions=1, questions=[payload['questions'][0]])] * 3) as request:
+            with self.assertRaisesRegex(ValueError, 'diagram_description'):
+                self.run_generator()
+        self.assertEqual(request.call_count, 4)
+        self.assertTrue(all(c.args[3]['json_schema']['name'] == 'practice_set' for c in request.call_args_list))
+        self.bucket.upload.assert_not_called()
+        self.db.rpc.assert_not_called()
+
+    def test_latex_delimiters_are_normalized_before_review_and_saved_without_retry(self):
+        payload = json.loads(self.module.ai_client.models.generate_content.return_value.text)
+        payload['questions'][0]['latex_content'] = '$2+3$'
+        payload['questions'][1]['latex_content'] = r'\[8-3\]'
+        self.module.ai_client.models.generate_content.return_value.text = json.dumps(payload)
+        def review(result, topics):
+            for q in result.questions:
+                self.assertEqual(q.latex_content, {1: '2+3', 2: '8-3'}[q.position])
+        self.module.review_practice_set.side_effect = review
+        self.run_generator()
+        self.assertEqual(self.module.ai_client.models.generate_content.call_count, 2)
+        rows = self.db.rpc.call_args.args[1]['p_questions']
+        self.assertEqual([q['latex_content'] for q in rows], ['2+3', '8-3'])
+        self.assertEqual([q['correct_answer'] for q in rows], ['5', '5'])
 
     def test_upload_before_publication(self):
         self.run_generator()
@@ -213,7 +373,7 @@ class GeneratorTests(unittest.TestCase):
             self.run_generator()
         self.assertFalse(any(e[1] in ('insert', 'save') for e in self.events))
         self.bucket.upload.assert_not_called()
-        self.assertEqual(self.module.ai_client.models.generate_content.call_count, 3)
+        self.assertEqual(self.module.ai_client.models.generate_content.call_count, 4)
 
     def test_invalid_response_retries_then_saves_once(self):
         valid_text = self.module.ai_client.models.generate_content.return_value.text
@@ -234,13 +394,22 @@ class GeneratorTests(unittest.TestCase):
         for invalid in cases:
             with self.subTest(invalid=invalid):
                 self.setUp()
-                self.module.ai_client.models.generate_content.side_effect = [
-                    SimpleNamespace(text=invalid), SimpleNamespace(text=valid_text),
-                ]
+                first = True
+                def respond(**kwargs):
+                    nonlocal first
+                    if first:
+                        first = False
+                        try:
+                            text = json.dumps(self.group_payload(json.loads(invalid), kwargs['contents']))
+                        except ValueError:
+                            text = invalid
+                        return SimpleNamespace(text=text, candidates=[])
+                    return self.provider_response(**kwargs)
+                self.module.ai_client.models.generate_content.side_effect = respond
                 self.run_generator()
-                self.assertEqual(self.module.ai_client.models.generate_content.call_count, 2)
+                self.assertEqual(self.module.ai_client.models.generate_content.call_count, 3)
                 self.assertEqual(sum(e[:2] == ('rpc', 'save') for e in self.events), 1)
-                call = self.module.ai_client.models.generate_content.call_args
+                call = self.module.ai_client.models.generate_content.call_args_list[1]
                 self.assertIn('previous attempt failed validation', call.kwargs['contents'])
 
     def test_retry_limit_has_no_writes(self):
@@ -257,7 +426,7 @@ class GeneratorTests(unittest.TestCase):
         with patch('builtins.print') as output:
             self.run_generator()
         messages = [str(call.args[0]) for call in output.call_args_list]
-        received = next(i for i, text in enumerate(messages) if 'Received 2 questions; validating' in text)
+        received = next(i for i, text in enumerate(messages) if 'Received 1 questions; validating' in text)
         validated = next(i for i, text in enumerate(messages) if 'Validated 2 questions' in text)
         published = next(i for i, text in enumerate(messages) if 'Created & Published' in text)
         self.assertLess(received, validated)
