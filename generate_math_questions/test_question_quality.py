@@ -1,6 +1,8 @@
 import importlib
 import json
 import unittest
+
+import httpx
 from unittest.mock import patch
 
 
@@ -25,6 +27,44 @@ class QualityTests(unittest.TestCase):
 
     def result(self):
         return self.module.PracticeSetSchema(set_title='Test', total_questions=1, questions=[self.q])
+
+    def test_groq_review_batches_and_splits_oversized_requests(self):
+        result = self.module.PracticeSetSchema(set_title='Test', total_questions=7,
+            questions=[self.q.model_copy(update={'position': i}) for i in range(1, 8)])
+        sizes = []
+        def respond(system, user, schema, wire_schema):
+            questions = json.loads(user)['questions']
+            sizes.append(len(questions))
+            self.assertEqual(schema['properties']['questions']['minItems'], len(questions))
+            self.assertEqual(wire_schema['json_schema']['schema'], schema)
+            if len(questions) > 2:
+                response = httpx.Response(413, request=httpx.Request('POST', 'https://api.groq.com'))
+                response.raise_for_status()
+            return {'questions': [dict(self.review['questions'][0], position=q['position']) for q in questions]}
+        with patch.object(self.module, 'AI_AGENT', 'groq'), patch.object(
+                self.module, 'request_structured_json', side_effect=respond):
+            self.module.review_practice_set(result, self.topics)
+        self.assertEqual(sizes, [3, 1, 2, 3, 1, 2, 1])
+        self.assertEqual([q.position for q in result.questions], list(range(1, 8)))
+        self.assertTrue(all(q.topic_id == 5 for q in result.questions))
+
+    def test_review_failure_does_not_apply_partial_updates(self):
+        for status in (413, 401, 429, 500):
+            result = self.module.PracticeSetSchema(set_title='Test', total_questions=4,
+                questions=[self.q.model_copy(update={'position': i}) for i in range(1, 5)])
+            calls = []
+            def respond(system, user, *args):
+                questions = json.loads(user)['questions']
+                calls.append(len(questions))
+                if questions[0]['position'] == 4:
+                    httpx.Response(status, request=httpx.Request('POST', 'https://api.groq.com')).raise_for_status()
+                return {'questions': [dict(self.review['questions'][0], position=q['position']) for q in questions]}
+            with self.subTest(status=status), patch.object(self.module, 'AI_AGENT', 'groq'), patch.object(
+                    self.module, 'request_structured_json', side_effect=respond):
+                with self.assertRaises(httpx.HTTPStatusError):
+                    self.module.review_practice_set(result, self.topics)
+            self.assertEqual(calls, [3, 1])
+            self.assertTrue(all(q.topic_id == 4 for q in result.questions))
 
     def test_currency_words_and_real_math_are_valid(self):
         self.q.stem_text += ' Calculate $20 - 12$.'
