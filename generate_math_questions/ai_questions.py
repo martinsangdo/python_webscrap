@@ -1,4 +1,6 @@
 import os
+from pathlib import Path
+from practice_checkpoint import PracticeCheckpoint, CheckpointError
 import json
 import re
 import math
@@ -25,6 +27,7 @@ AI_AGENT = os.getenv("AI_AGENT", "gemini").strip().lower()
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
 GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b").strip()
 DIAGRAM_BUCKET = "question-diagrams"
+CHECKPOINT_DIR = Path(__file__).resolve().parent / ".practice_checkpoints"
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 ai_client = None  # Initialize Gemini only when selected, after the duplicate check.
@@ -517,7 +520,7 @@ class SetReview(BaseModel):
     questions: List[QuestionReview]
 
 
-def review_practice_set(result, topics):
+def review_practice_set(result, topics, *, allow_partial=False, on_completed=None):
     """Blind solve: withhold generated keys, solutions, hints and topic choices."""
     schema = SetReview.model_json_schema()
     for obj in (schema, schema["$defs"]["QuestionReview"]):
@@ -556,37 +559,71 @@ def review_practice_set(result, topics):
             midpoint = len(batch) // 2
             print(f"Groq review batch too large; splitting {len(batch)} questions.", flush=True)
             return review_batch(batch[:midpoint]) + review_batch(batch[midpoint:])
+        if allow_partial:
+            rows = payload.get("questions") if isinstance(payload, dict) else None
+            expected = {q["position"] for q in batch}
+            if (not isinstance(rows, list) or any(
+                    not isinstance(row, dict) or type(row.get("position")) is not int
+                    for row in rows)
+                    or sorted(row["position"] for row in rows) != sorted(expected)):
+                raise ValueError("Review must cover every question exactly once in its batch")
+            reviews = []
+            for row in rows:
+                try:
+                    reviews.append(QuestionReview.model_validate(row))
+                except ValueError as error:
+                    failures[row["position"]] = f"Question {row['position']}: invalid review: {error}"
+            return reviews
         reviews = SetReview.model_validate(payload).questions
         if sorted(r.position for r in reviews) != sorted(q["position"] for q in batch):
             raise ValueError("Review must cover every question exactly once in its batch")
         return reviews
 
-    # Keep full diagrams and the catalog. Commit review changes only after all batches pass.
-    batch_size = 3  # Reviews stay small even when generation uses a larger group.
-    reviews = []
-    for start in range(0, count, batch_size):
-        print(f"Reviewing questions {start + 1}-{min(start + batch_size, count)}/{count}...", flush=True)
-        reviews.extend(review_batch(questions[start:start + batch_size]))
-    review = SetReview(questions=reviews)
-    if sorted(r.position for r in review.questions) != sorted(q.position for q in result.questions):
-        raise ValueError("Review must cover every question exactly once")
-    by_position = {r.position: r for r in review.questions}
-    topic_ids = {t["id"] for t in topics}
+    # In partial mode each successfully reviewed question is complete independently.
+    # The default keeps the standalone review API atomic for existing callers.
+    batch_size = 3
     reviewed = []
-    for q in result.questions:
-        r = by_position[q.position]
-        if not r.unambiguous or not r.detailed_solution_latex.strip():
-            raise ValueError(f"Question {q.position}: independent review found an ambiguous or unsolved question")
-        if q.question_type != "PROOF" and r.correct_answer != q.correct_answer:
-            raise ValueError(f"Question {q.position}: generated answer {q.correct_answer} disagrees with independent answer {r.correct_answer}")
-        candidate = q.model_copy(update={
-            "topic_id": r.topic_id,
-            "correct_answer": r.correct_answer if q.question_type == "PROOF" else q.correct_answer,
-            "detailed_solution_latex": r.detailed_solution_latex,
-        })
-        validate_question_content(candidate, topic_ids)
-        reviewed.append(candidate)
+    failures = {}
+    topic_ids = {t["id"] for t in topics}
+    for start in range(0, count, batch_size):
+        batch = result.questions[start:start + batch_size]
+        print(f"Reviewing positions {[q.position for q in batch]}...", flush=True)
+        try:
+            reviews = review_batch(questions[start:start + batch_size])
+        except ResponseTokenLimitError:
+            raise
+        except ValueError as error:
+            if not allow_partial:
+                raise
+            failures.update({q.position: str(error) for q in batch})
+            continue
+        by_position = {r.position: r for r in reviews}
+        for q in batch:
+            if q.position in failures:
+                continue
+            try:
+                r = by_position[q.position]
+                if not r.unambiguous or not r.detailed_solution_latex.strip():
+                    raise ValueError(f"Question {q.position}: independent review found an ambiguous or unsolved question")
+                if q.question_type != "PROOF" and r.correct_answer != q.correct_answer:
+                    raise ValueError(f"Question {q.position}: generated answer {q.correct_answer} disagrees with independent answer {r.correct_answer}")
+                candidate = q.model_copy(update={
+                    "topic_id": r.topic_id,
+                    "correct_answer": r.correct_answer if q.question_type == "PROOF" else q.correct_answer,
+                    "detailed_solution_latex": r.detailed_solution_latex,
+                })
+                validate_question_content(candidate, topic_ids)
+                reviewed.append(candidate)
+                if on_completed is not None:
+                    on_completed(candidate)
+            except ValueError as error:
+                if not allow_partial:
+                    raise
+                failures[q.position] = str(error)
     result.questions = reviewed
+    if allow_partial:
+        result.total_questions = len(reviewed)
+    return failures
 
 
 def geometry_description(question):
@@ -793,7 +830,7 @@ def request_whole_set_plan(context, sections, topics, max_attempts):
 
 
 def generate_planned_practice_set(system_prompt, set_title, plan, sections, topics,
-                                  max_attempts):
+                                  max_attempts, *, checkpoint=None):
     """Generate text, chart and geometry groups; split only on explicit size limits."""
     validate_whole_set_plan(plan, sections, topics)
     slots = {q.position: q for q in plan.questions}
@@ -804,8 +841,57 @@ def generate_planned_practice_set(system_prompt, set_title, plan, sections, topi
     duplicate_sources = {}
     summaries = {}
 
+    def accept(q, source, *, persist=True):
+        if checkpoint is not None and persist:
+            checkpoint.complete(q, source)
+        accepted[q.position] = q
+        duplicate_sources[q.position] = source
+        summaries[q.position] = {
+            "position": q.position, "skill": slots[q.position].skill,
+            "stem": q.stem_text[:240], "formula": (q.latex_content or "")[:100],
+            "chart_type": q.chart_type,
+        }
+
+    if checkpoint is not None:
+        try:
+            records = checkpoint.data["questions"]
+            if set(records) != {str(p) for p in slots}:
+                raise ValueError("Checkpoint positions do not match the plan")
+            for key, record in records.items():
+                if record["status"] == "draft":
+                    continue
+                if record["status"] != "completed":
+                    raise ValueError("Unknown checkpoint status")
+                q = QuestionItem.model_validate(record["question"])
+                if str(q.position) != key:
+                    raise ValueError("Checkpoint question position mismatch")
+                rule, slot = rules[q.position], slots[q.position]
+                for field, expected in (
+                    ("section_name", rule["section_name"]), ("question_type", rule["question_type"]),
+                    ("points", rule["points_per_correct"]), ("penalty_points", rule["penalty_points"]),
+                    ("chart_type", slot.chart_type), ("difficulty_rating", slot.difficulty_rating),
+                ):
+                    if getattr(q, field) != expected:
+                        raise ValueError(f"Checkpoint question {q.position}: invalid {field}")
+                validate_question_content(q, topic_ids)
+                if q.chart_type is not None:
+                    render_chart_svg(q.chart_type, q.chart_data)
+                elif q.chart_data is not None:
+                    raise ValueError("Unexpected checkpoint chart data")
+                source = record["duplicate_source"]
+                if not isinstance(source, str) or not source:
+                    raise ValueError("Missing duplicate comparison text")
+                if any(similar_question_text(source, prior) for prior in duplicate_sources.values()):
+                    raise ValueError("Duplicate questions in checkpoint")
+                accept(q, source, persist=False)
+        except (ValueError, TypeError, KeyError) as error:
+            raise CheckpointError(f"Invalid checkpoint {checkpoint.path}: {error}") from error
+        print(f"Restored {len(accepted)}/{len(slots)} completed questions.", flush=True)
+
     def generate_group(group_name, positions):
-        pending = list(positions)
+        pending = [p for p in positions if p not in accepted]
+        if not pending:
+            return
         feedback = ""
         for attempt in range(1, max_attempts + 1):
             assigned = [{**slots[p].model_dump(), **{
@@ -880,20 +966,23 @@ def generate_planned_practice_set(system_prompt, set_title, plan, sections, topi
                     if candidates:
                         candidate_set = PracticeSetSchema(set_title=set_title, total_questions=len(candidates), questions=candidates)
                         generate_geometry_diagrams(candidate_set)
-                        review_practice_set(candidate_set, compact_topics(topics))
+                        review_kwargs = {"allow_partial": True}
+                        if checkpoint is not None:
+                            # Save immediately: later review batches may fail or be interrupted.
+                            review_kwargs["on_completed"] = lambda q: accept(q, sources[q.position])
+                        failures = review_practice_set(candidate_set, compact_topics(topics), **review_kwargs)
+                        if failures:
+                            errors.extend(failures.values())
                         for q in candidate_set.questions:
-                            accepted[q.position] = q
-                            duplicate_sources[q.position] = sources[q.position]
-                            summaries[q.position] = {
-                                "position": q.position, "skill": slots[q.position].skill,
-                                "stem": q.stem_text[:240], "formula": (q.latex_content or "")[:100],
-                                "chart_type": q.chart_type,
-                            }
+                            if q.position not in accepted:
+                                accept(q, sources[q.position])
                 except ResponseTokenLimitError:
                     raise  # A downstream response limit must not split generation.
                 except ValueError as error:
                     errors.append(str(error))
             pending = [p for p in pending if p not in accepted]
+            print(f"Question status: {len(accepted)}/{len(slots)} completed; "
+                  f"draft positions in this group: {pending}.", flush=True)
             if not pending:
                 return
             feedback = "The previous attempt failed validation: " + "; ".join(errors)[:1600]
@@ -930,6 +1019,11 @@ def generate_complete_practice_set(
     Use keyword arguments to supply only certification_id and set_title.
     Batch titles include level and grade; grade is not stored in a new column.
     Batches skip existing sets and stop on other failures, retaining completed sets.
+    Local .practice_checkpoints files preserve the plan and reviewed questions.
+    Rerun with the same certification, level, title and grade to resume; retries
+    are bounded by max_attempts on each invocation. Completed checkpoints are
+    removed only after confirmed database success. To deliberately start over,
+    remove the checkpoint JSON path printed by the generator while it is stopped.
     """
     if not isinstance(set_title, str) or not set_title.strip():
         raise ValueError("set_title is required and must be nonempty")
@@ -980,6 +1074,17 @@ def generate_complete_practice_set(
 def _generate_single_practice_set(
     certification_id: str, level_code: str, set_title: str, grade: Optional[int] = None,
     max_attempts: int = 3,
+):
+    identity = {"certification_id": certification_id, "level_code": level_code,
+                "set_title": set_title, "grade": grade}
+    with PracticeCheckpoint(CHECKPOINT_DIR, identity) as checkpoint:
+        return _generate_single_practice_set_with_checkpoint(
+            certification_id, level_code, set_title, grade, max_attempts, checkpoint,
+        )
+
+
+def _generate_single_practice_set_with_checkpoint(
+    certification_id, level_code, set_title, grade, max_attempts, checkpoint,
 ):
     """Generate for a specific grade, or the full level band when grade is omitted.
 
@@ -1068,12 +1173,27 @@ def _generate_single_practice_set(
     selected_key = GEMINI_API_KEY if AI_AGENT == "gemini" else GROQ_API_KEY
     if not selected_key or not selected_key.strip():
         raise ValueError(f"{AI_AGENT.upper()}_API_KEY is required")
-    plan = request_whole_set_plan(
-        f"{cert['full_name']} ({certification_id}). {grade_instruction} "
-        f"Style philosophy: {cert['prompt_philosophy']}",
-        sections, topics, max_attempts,
+    saved_progress = checkpoint.load({
+        "system_prompt": system_prompt, "sections": sections,
+        "topics": compact_topics(topics), "level_id": level["id"],
+        "database_url": SUPABASE_URL,
+    })
+    if saved_progress is None:
+        plan = request_whole_set_plan(
+            f"{cert['full_name']} ({certification_id}). {grade_instruction} "
+            f"Style philosophy: {cert['prompt_philosophy']}",
+            sections, topics, max_attempts,
+        )
+        checkpoint.initialize(plan)
+    else:
+        try:
+            plan = WholeSetPlan.model_validate(saved_progress["plan"])
+            validate_whole_set_plan(plan, sections, topics)
+        except (ValueError, KeyError, TypeError) as error:
+            raise CheckpointError(f"Invalid saved plan in {checkpoint.path}: {error}") from error
+    result = generate_planned_practice_set(
+        system_prompt, set_title, plan, sections, topics, max_attempts, checkpoint=checkpoint,
     )
-    result = generate_planned_practice_set(system_prompt, set_title, plan, sections, topics, max_attempts)
     diagrams = validate_practice_set(result, total_q_count, sections)
     print(f"Validated {len(result.questions)} questions and all charts successfully.")
 
@@ -1148,6 +1268,7 @@ def _generate_single_practice_set(
         )
         raise
 
+    checkpoint.finish()
     print(f"=== SUCCESS: Practice Set '{set_title}' (ID: {saved['set_id']}) with {saved['question_count']} questions Created & Published! ===")
 
 #find out what levels of a certification

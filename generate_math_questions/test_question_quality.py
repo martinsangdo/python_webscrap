@@ -81,6 +81,27 @@ class QualityTests(unittest.TestCase):
             self.assertEqual(calls, [3, 1])
             self.assertTrue(all(q.topic_id == 4 for q in result.questions))
 
+    def test_partial_review_preserves_good_items_when_one_review_is_malformed(self):
+        result = self.module.PracticeSetSchema(set_title='Test', total_questions=3,
+            questions=[self.q.model_copy(update={'position': i}) for i in range(1, 4)])
+        rows = [dict(self.review['questions'][0], position=i) for i in range(1, 4)]
+        del rows[1]['correct_answer']
+        with patch.object(self.module, 'request_structured_json', return_value={'questions': rows}):
+            failures = self.module.review_practice_set(result, self.topics, allow_partial=True)
+        self.assertEqual(set(failures), {2})
+        self.assertEqual([q.position for q in result.questions], [1, 3])
+        self.assertEqual(result.total_questions, 2)
+
+    def test_partial_review_keeps_other_batches_after_invalid_coverage(self):
+        result = self.module.PracticeSetSchema(set_title='Test', total_questions=4,
+            questions=[self.q.model_copy(update={'position': i}) for i in range(1, 5)])
+        with patch.object(self.module, 'request_structured_json', side_effect=[
+                {'questions': []},
+                {'questions': [dict(self.review['questions'][0], position=4)]}]):
+            failures = self.module.review_practice_set(result, self.topics, allow_partial=True)
+        self.assertEqual(set(failures), {1, 2, 3})
+        self.assertEqual([q.position for q in result.questions], [4])
+
     def test_currency_words_and_real_math_are_valid(self):
         self.q.stem_text += ' Calculate $20 - 12$.'
         self.module.validate_question_content(self.q, {4})

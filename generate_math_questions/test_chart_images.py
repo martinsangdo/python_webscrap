@@ -1,6 +1,7 @@
 import importlib
 import json
 import unittest
+import tempfile
 import xml.etree.ElementTree as ET
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
@@ -47,6 +48,9 @@ class GeneratorTests(unittest.TestCase):
             self.module = importlib.import_module('ai_questions')
             self.module = importlib.reload(self.module)
             create.return_value.table.assert_not_called()
+        checkpoint_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(checkpoint_dir.cleanup)
+        self.module.CHECKPOINT_DIR = checkpoint_dir.name
         self.review_patch = patch.object(self.module, "review_practice_set")
         self.review_patch.start()
         self.addCleanup(self.review_patch.stop)
@@ -203,7 +207,7 @@ class GeneratorTests(unittest.TestCase):
             for field in ('topics', 'correct_answer', 'detailed_solution_latex', 'kid_friendly_hint'):
                 self.assertNotIn(field, sent)
             return svg
-        def review(result, topics):
+        def review(result, topics, *, allow_partial=False, on_completed=None):
             if result.questions[0].chart_type == 'GEOMETRY_SVG':
                 self.assertEqual(result.questions[0].chart_data, svg)
             self.bucket.upload.assert_not_called()
@@ -276,7 +280,7 @@ class GeneratorTests(unittest.TestCase):
         payload['questions'][0]['latex_content'] = '$2+3$'
         payload['questions'][1]['latex_content'] = r'\[8-3\]'
         self.module.ai_client.models.generate_content.return_value.text = json.dumps(payload)
-        def review(result, topics):
+        def review(result, topics, *, allow_partial=False, on_completed=None):
             for q in result.questions:
                 self.assertEqual(q.latex_content, {1: '2+3', 2: '8-3'}[q.position])
         self.module.review_practice_set.side_effect = review
@@ -285,6 +289,27 @@ class GeneratorTests(unittest.TestCase):
         rows = self.db.rpc.call_args.args[1]['p_questions']
         self.assertEqual([q['latex_content'] for q in rows], ['2+3', '8-3'])
         self.assertEqual([q['correct_answer'] for q in rows], ['5', '5'])
+
+    def test_restart_after_upload_failure_reuses_plan_questions_and_diagrams(self):
+        self.fail = 'upload'
+        with self.assertRaisesRegex(RuntimeError, 'upload failed'):
+            self.run_generator()
+        from pathlib import Path
+        files = list(Path(self.module.CHECKPOINT_DIR).glob('*.json'))
+        self.assertEqual(len(files), 1)
+        checkpoint = json.loads(files[0].read_text())
+        self.assertTrue(all(row['status'] == 'completed'
+                            for row in checkpoint['questions'].values()))
+        self.module.ai_client.models.generate_content.reset_mock()
+        self.module.request_whole_set_plan.reset_mock()
+        self.module.review_practice_set.reset_mock()
+        self.fail = None
+        self.run_generator()
+        self.module.ai_client.models.generate_content.assert_not_called()
+        self.module.request_whole_set_plan.assert_not_called()
+        self.module.review_practice_set.assert_not_called()
+        self.assertFalse(files[0].exists())
+        self.db.rpc.assert_called_once()
 
     def test_upload_before_publication(self):
         self.run_generator()

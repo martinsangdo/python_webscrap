@@ -46,6 +46,7 @@ class QuestionBatchTests(unittest.TestCase):
                 detailed_solution_latex='Compute the requested value.', kid_friendly_hint='Use the given data.')
         self.calls = []
         self.prompts = []
+        self.real_review = self.m.review_practice_set
         review = patch.object(self.m, 'review_practice_set')
         self.review = review.start()
         self.addCleanup(review.stop)
@@ -108,6 +109,41 @@ class QuestionBatchTests(unittest.TestCase):
         self.generate()
         self.assertEqual(self.calls, [[1, 3, 4, 5, 7], [2, 6], [2, 6]])
         self.assertEqual([q['position'] for q in self.prompts[2]['previous_questions_to_avoid']], [1, 3, 4, 5, 7])
+
+    def test_answer_failure_regenerates_and_reviews_only_failed_position(self):
+        reviewed_positions = []
+        def respond(system, user, *args):
+            batch = json.loads(user)['questions']
+            positions = [q['position'] for q in batch]
+            reviewed_positions.append(positions)
+            return {'questions': [dict(
+                position=q['position'], topic_id=self.questions[q['position']].topic_id,
+                correct_answer='9' if q['position'] == 3 and len(positions) > 1 else '4',
+                unambiguous=True, detailed_solution_latex='Independently verified solution.',
+            ) for q in batch]}
+        # Exercise the real reviewer, including its internal batches.
+        with patch.object(self.m, 'review_practice_set', self.real_review), patch.object(
+                self.m, 'request_structured_json', side_effect=respond):
+            result = self.generate()
+        self.assertEqual(self.calls, [[1, 3, 4, 5, 7], [3], [2, 6]])
+        self.assertEqual(reviewed_positions, [[1, 3, 4], [5, 7], [3], [2, 6]])
+        self.assertTrue(all(q.detailed_solution_latex == 'Independently verified solution.'
+                            for q in result.questions))
+        self.m.supabase.rpc.assert_not_called()
+
+    def test_persistent_answer_failure_does_not_repeat_completed_questions(self):
+        def respond(system, user, *args):
+            return {'questions': [dict(
+                position=q['position'], topic_id=self.questions[q['position']].topic_id,
+                correct_answer='9' if q['position'] == 3 else '4',
+                unambiguous=True, detailed_solution_latex='Independently verified solution.',
+            ) for q in json.loads(user)['questions']]}
+        with patch.object(self.m, 'review_practice_set', self.real_review), patch.object(
+                self.m, 'request_structured_json', side_effect=respond):
+            with self.assertRaisesRegex(ValueError, r'Questions \[3\] failed validation after 2 attempts'):
+                self.generate(attempts=2)
+        self.assertEqual(self.calls, [[1, 3, 4, 5, 7], [3]])
+        self.m.supabase.rpc.assert_not_called()
 
     def test_http_failure_is_not_treated_as_a_duplicate_retry(self):
         def request(*args, **kwargs):
