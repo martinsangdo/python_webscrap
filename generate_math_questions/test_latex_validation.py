@@ -1,4 +1,5 @@
 import importlib
+import json
 import unittest
 from unittest.mock import patch
 
@@ -39,6 +40,28 @@ class LatexValidationTests(unittest.TestCase):
             with self.subTest(overescaped=command):
                 with self.assertRaisesRegex(ValueError, 'unsupported or overescaped'):
                     self.check('$' + '\\\\' + command + '$')
+
+    def test_answer_blanks_pass_unchanged_without_ai_repair(self):
+        for blank in ('__', '____', r'\_\_', r'\_\_\_\_'):
+            text = f'Recognize the rule in the sequence: 5, 10, 15, {blank}. What number comes next?'
+            q = self.question(stem_text=text)
+            before = q.model_dump()
+            with self.subTest(blank=blank), patch.object(self.module, 'request_structured_json') as request:
+                self.module.validate_generated_question_content(q, {4})
+                request.assert_not_called()
+            self.assertEqual(q.model_dump(), before)
+            self.check(f'Fill in ({blank}): $2+3$ equals {blank}.')
+
+    def test_answer_blanks_do_not_hide_latex_outside_math(self):
+        for text in (r'Find x_2.', r'Find x__2.', r'Find x__.',
+                     r'Find x\_\_2.', r'Find __x.',
+                     r'Fill __ with \frac{1}{2}.', r'Fill __ with x^{2}.',
+                     r'Fill \_\_ with \unknown{x}.'):
+            with self.subTest(text=text):
+                with self.assertRaisesRegex(ValueError, 'LaTeX outside math'):
+                    self.check(text)
+        with self.assertRaises(ValueError):
+            self.check('$__$')
 
     def test_malformed_content_rejected_with_location(self):
         for text in (
@@ -154,6 +177,60 @@ class LatexValidationTests(unittest.TestCase):
         self.assertEqual(q.model_dump(), dict(before, detailed_solution_latex=repaired))
         self.module.validate_question_content(q, {4})
 
+    def test_stem_delimiter_repair_preserves_content(self):
+        original = r'Find \frac{1}{2} of $16$.'
+        repaired = r'Find $\frac{1}{2}$ of $16$.'
+        q = self.question(stem_text=original)
+        before = q.model_dump()
+        with patch.object(self.module, 'request_structured_json', return_value={'text': repaired}) as request:
+            self.module.validate_generated_question_content(q, {4})
+        request.assert_called_once()
+        self.assertEqual(q.model_dump(), dict(before, stem_text=repaired))
+
+    def test_stem_repair_rejects_rewrites_and_invalid_commands(self):
+        for original, repaired in (
+            (r'Find \frac{1}{2}.', r'Find $\frac{1}{3}$.'),
+            (r'Find \unknown{x}.', r'Find $\unknown{x}$.'),
+        ):
+            q = self.question(stem_text=original)
+            before = q.model_dump()
+            with self.subTest(original=original), patch.object(self.module, 'request_structured_json',
+                    return_value={'text': repaired}):
+                with self.assertRaises(ValueError):
+                    self.module.validate_generated_question_content(q, {4})
+            self.assertEqual(q.model_dump(), before)
+
+    def test_incomplete_stem_repair_retries_with_specific_feedback(self):
+        original = r'Compare \frac{1}{2} and \frac{2}{3}.'
+        partial = r'Compare $\frac{1}{2}$ and \frac{2}{3}.'
+        repaired = r'Compare $\frac{1}{2}$ and $\frac{2}{3}$.'
+        q = self.question(stem_text=original)
+        before = q.model_dump()
+        with patch.object(self.module, 'request_structured_json', side_effect=[
+                {'text': partial}, {'text': repaired}]) as request:
+            self.module.validate_generated_question_content(q, {4})
+        self.assertEqual(request.call_count, 2)
+        retry = json.loads(request.call_args.args[1])
+        self.assertEqual(retry['text'], original)
+        self.assertEqual(retry['previous_repair'], partial)
+        self.assertEqual(retry['remaining_invalid_prose'], [r' and \frac{2}{3}.'])
+        self.assertEqual(q.model_dump(), dict(before, stem_text=repaired))
+
+    def test_incomplete_repair_is_bounded_and_logs_rejected_text(self):
+        original = r'Compare \frac{1}{2} and \frac{2}{3}.'
+        partial = r'Compare $\frac{1}{2}$ and \frac{2}{3}.'
+        q = self.question(stem_text=original)
+        before = q.model_dump()
+        with patch.object(self.module, 'request_structured_json',
+                return_value={'text': partial}) as request, patch('builtins.print') as output:
+            with self.assertRaisesRegex(ValueError, 'stem_text: LaTeX outside math'):
+                self.module.validate_generated_question_content(q, {4})
+        self.assertEqual(request.call_count, 2)
+        self.assertEqual(q.model_dump(), before)
+        diagnostic = json.loads(output.call_args.args[0].removeprefix('LaTeX repair failed: '))
+        self.assertEqual(diagnostic['original_text'], original)
+        self.assertEqual(diagnostic['attempted_repair'], partial)
+
     def test_repair_rejects_rewritten_math_prose_and_existing_spans(self):
         original = r'Divide: \frac{12}{2}=6. Then $6+2=8$.'
         for repaired in (
@@ -187,7 +264,7 @@ class LatexValidationTests(unittest.TestCase):
         with patch.object(self.module, 'request_structured_json') as request:
             self.module.validate_generated_question_content(self.question(), {4})
             for updates in ({'detailed_solution_latex': r'$\frac{1}$'},
-                            {'stem_text': r'Find \frac{1}{2}.'}, {'correct_answer': 'Z'}):
+                            {'stem_text': r'Find $\frac{1}$.'}, {'correct_answer': 'Z'}):
                 with self.subTest(updates=updates), self.assertRaises(ValueError):
                     self.module.validate_generated_question_content(self.question(**updates), {4})
         request.assert_not_called()
