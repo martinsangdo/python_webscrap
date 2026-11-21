@@ -378,9 +378,9 @@ mathbb mathcal operatorname times cdot div pm mp le leq ge geq ne neq approx equ
 cong sim simeq propto in notin subset subseteq supset supseteq cup cap emptyset
 infty pi alpha beta gamma delta epsilon theta lambda mu sigma phi omega Gamma
 Delta Theta Sigma Phi Omega sum prod int lim log ln sin cos tan gcd lcm min max
-pmod mod bmod mid nmid parallel perp angle triangle circ degree cdots ldots vdots
+pmod mod bmod mid nmid parallel perp angle triangle circ degree dots cdots ldots vdots
 ddots overline underline hat bar vec left right lvert rvert lVert rVert langle
-rangle quad qquad forall exists neg land lor to rightarrow Rightarrow
+rangle lceil rceil quad qquad forall exists neg land lor to rightarrow Rightarrow
 Leftrightarrow implies iff partial nabla'''.split())
 LATEX_FORMAT_RULES = r"""
 APP LATEX FORMAT (applies to stems, options, hints, solutions, and proof answers):
@@ -1413,6 +1413,6 @@ if __name__ == "__main__":
     generate_complete_practice_set(
         certification_id="SASMO",   #required
         set_title="SASMO 2027 Practice 1" #required
-    , level_code="PRIMARY_4", #optional
-        grade=4,    #optional
+    # , level_code="PRIMARY_4", #optional
+        # grade=4,    #optional
     )

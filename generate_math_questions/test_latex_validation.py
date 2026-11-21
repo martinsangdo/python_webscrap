@@ -25,6 +25,21 @@ class LatexValidationTests(unittest.TestCase):
                 self.check(text)
         self.check(r'\frac{10^{n}-1}{9}', bare=True)
 
+    def test_solution_ellipsis_and_ceiling_commands(self):
+        for text in (
+            r'Continue the sequence $1, 2, \dots, 10$.',
+            r'Round up: $\lceil\frac{7}{3}\rceil=3$.',
+            r'Round up: $\left\lceil\frac{7}{3}\right\rceil=3$.',
+        ):
+            with self.subTest(text=text):
+                q = self.question(detailed_solution_latex=text)
+                self.module.validate_question_content(q, {4})
+        for command in ('dots', 'lceil', 'rceil'):
+            self.assertIn(command, self.module.LATEX_COMMANDS)
+            with self.subTest(overescaped=command):
+                with self.assertRaisesRegex(ValueError, 'unsupported or overescaped'):
+                    self.check('$' + '\\\\' + command + '$')
+
     def test_malformed_content_rejected_with_location(self):
         for text in (
             r'6\times4', r'Let \(n\) be odd.', r'\text{Explanation}',
