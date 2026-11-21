@@ -63,6 +63,30 @@ class QualityTests(unittest.TestCase):
         self.assertEqual(received, [[2, 4, 7], [9, 12, 14], [20]])
         self.assertEqual([q.position for q in result.questions], positions)
 
+    def test_review_token_limits_split_recursively_for_both_providers(self):
+        for provider in ('groq', 'gemini'):
+            result = self.module.PracticeSetSchema(set_title='Test', total_questions=3,
+                questions=[self.q.model_copy(update={'position': p}) for p in (2, 7, 9)])
+            calls = []
+            def respond(system, user, *args):
+                batch = json.loads(user)['questions']
+                calls.append([q['position'] for q in batch])
+                if len(batch) > 1:
+                    raise self.module.ResponseTokenLimitError('limit')
+                return {'questions': [dict(self.review['questions'][0], position=batch[0]['position'])]}
+            with self.subTest(provider=provider), patch.object(self.module, 'AI_AGENT', provider), patch.object(
+                    self.module, 'request_structured_json', side_effect=respond):
+                self.module.review_practice_set(result, self.topics)
+            self.assertEqual(calls, [[2, 7, 9], [2], [7, 9], [7], [9]])
+            self.assertTrue(all(q.topic_id == 5 for q in result.questions))
+
+    def test_single_review_token_limit_is_not_retried(self):
+        with patch.object(self.module, 'request_structured_json',
+                          side_effect=self.module.ResponseTokenLimitError('limit')) as request:
+            with self.assertRaises(self.module.ResponseTokenLimitError):
+                self.module.review_practice_set(self.result(), self.topics)
+        request.assert_called_once()
+
     def test_review_failure_does_not_apply_partial_updates(self):
         for status in (413, 401, 429, 500):
             result = self.module.PracticeSetSchema(set_title='Test', total_questions=4,

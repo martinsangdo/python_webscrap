@@ -12,6 +12,11 @@ class QuestionBatchTests(unittest.TestCase):
             self.m = importlib.import_module('ai_questions')
             self.m = importlib.reload(self.m)
         self.m.AI_AGENT = 'gemini'
+        self.default_batch_size = self.m.GENERATION_BATCH_SIZE
+        # Keep the existing five-question fixtures exercising larger-batch recovery.
+        batch_size = patch.object(self.m, 'GENERATION_BATCH_SIZE', 5)
+        batch_size.start()
+        self.addCleanup(batch_size.stop)
         self.topics = [{'id': 1, 'title': 'Arithmetic'}, {'id': 2, 'title': 'Geometry'}]
         self.sections = [(1, 4, dict(section_name='A', question_type='INTEGER_FILL',
             points_per_correct=2, penalty_points=0, chart_questions_count=1, chart_types=['BAR'])),
@@ -75,6 +80,15 @@ class QuestionBatchTests(unittest.TestCase):
         self.assertNotIn('correct_answer', json.dumps(self.prompts))
         self.assertEqual(len(self.m.validate_practice_set(result, 7, self.sections)), 2)
         self.assertEqual(self.review.call_count, 2)
+
+    def test_default_batches_contain_at_most_three_questions(self):
+        self.assertEqual(self.default_batch_size, 3)
+        with patch.object(self.m, 'GENERATION_BATCH_SIZE', self.default_batch_size):
+            result = self.generate()
+        self.assertEqual(self.calls, [[1, 3, 4], [5, 7], [2, 6]])
+        self.assertEqual([q.position for q in result.questions], list(range(1, 8)))
+        self.assertEqual([q['position'] for q in self.prompts[1]['previous_questions_to_avoid']], [1, 3, 4])
+        self.assertEqual(self.review.call_count, 3)
 
     def test_number_variant_regenerates_only_conflicting_position(self):
         def request(*args, **kwargs):
@@ -211,7 +225,9 @@ class QuestionBatchTests(unittest.TestCase):
             self.questions[slot.position].chart_type = None
             self.questions[slot.position].chart_data = None
         self.generate()
-        self.assertEqual(self.calls, [list(range(1, 8))])
+        self.assertEqual(self.calls, [[1, 2, 3, 4, 5], [6, 7]])
+        self.assertEqual([q['position'] for q in self.prompts[1]['previous_questions_to_avoid']],
+                         [1, 2, 3, 4, 5])
 
     def test_output_limit_splits_only_the_affected_group(self):
         def request(*args, **kwargs):
@@ -354,6 +370,49 @@ class QuestionBatchTests(unittest.TestCase):
             self.assertEqual((position['minimum'], position['maximum']), (7, 7))
             self.assertEqual(schema['properties']['questions']['maxItems'], 1)
         self.assertEqual(groq['json_schema']['schema']['$defs']['QuestionItem']['properties']['position']['enum'], [7])
+
+    def test_planner_compaction_preserves_educational_context_and_all_topics(self):
+        topics = [dict(id=i, domain_code='ARITHMETIC', title=f'Phép tính {i}',
+                       unused_metadata='not needed') for i in range(1, 101)]
+        sections = [(first, last, dict(rule, id=42, level_id='database-level',
+                    questions_count=last-first+1, created_at='timestamp',
+                    updated_at='timestamp', learning_goal='Explain relationships'))
+                    for first, last, rule in self.sections]
+        context = 'Grade 4: varied contest problems, progressing in difficulty.'
+        prompt = self.m.whole_set_plan_prompt(context, sections, topics)
+        data = json.loads(prompt)
+        def records(table):
+            return [dict(zip(table['columns'], row)) for row in table['rows']]
+        self.assertEqual(data['exam'], context)
+        self.assertEqual(records(data['topics']), self.m.compact_topics(topics))
+        for restored, (first, last, rule) in zip(records(data['sections']), sections):
+            self.assertEqual(restored, dict(first_position=first, last_position=last,
+                **{k: v for k, v in rule.items() if k not in
+                   {'id', 'level_id', 'questions_count', 'created_at', 'updated_at'}}))
+        old_prompt = json.dumps({'exam': context, 'sections': [
+            dict(first_position=first, last_position=last, **rule) for first, last, rule in sections],
+            'topics': self.m.compact_topics(topics)}, separators=(',', ':'), ensure_ascii=False)
+        # Compare UTF-8 bytes, not an unverified estimate of the model's token count.
+        self.assertLess(len(prompt.encode()), len(old_prompt.encode()) * 0.8)
+        self.assertEqual(topics[0]['unused_metadata'], 'not needed')
+        self.assertEqual(sections[0][2]['id'], 42)
+
+    def test_planner_schema_removes_only_decorative_titles(self):
+        original = self.m.WholeSetPlan.model_json_schema()
+        compact = self.m.planning_schema(original)
+        self.assertIn('title', original)
+        def check(before, after):
+            if isinstance(before, dict):
+                self.assertEqual(set(after), set(before) - {'title'})
+                for key in after:
+                    check(before[key], after[key])
+            elif isinstance(before, list):
+                self.assertEqual(len(before), len(after))
+                for left, right in zip(before, after):
+                    check(left, right)
+            else:
+                self.assertEqual(before, after)
+        check(original, compact)
 
 
 if __name__ == '__main__':

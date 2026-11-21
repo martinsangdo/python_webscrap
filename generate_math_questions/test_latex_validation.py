@@ -127,6 +127,69 @@ class LatexValidationTests(unittest.TestCase):
         self.assertIn(self.module.LATEX_FORMAT_RULES, request.call_args.args[0])
         self.assertEqual(result.questions[0].detailed_solution_latex, original)
 
+    def test_solution_delimiter_repair_preserves_every_other_character(self):
+        original = r'Divide: \frac{12}{2}=6. Then $6+2=8$. Choose B.'
+        repaired = r'Divide: $\frac{12}{2}=6$. Then $6+2=8$. Choose B.'
+        q = self.question(detailed_solution_latex=original)
+        before = q.model_dump()
+        with patch.object(self.module, 'request_structured_json', return_value={'text': repaired}) as request:
+            self.module.validate_generated_question_content(q, {4})
+        request.assert_called_once()
+        self.assertEqual(request.call_args.args[3]['json_schema']['name'], 'latex_format')
+        self.assertEqual(q.model_dump(), dict(before, detailed_solution_latex=repaired))
+        self.module.validate_question_content(q, {4})
+
+    def test_repair_rejects_rewritten_math_prose_and_existing_spans(self):
+        original = r'Divide: \frac{12}{2}=6. Then $6+2=8$.'
+        for repaired in (
+            r'Divide: $\frac{12}{2}=7$. Then $6+2=8$.',
+            r'Compute: $\frac{12}{2}=6$. Then $6+2=8$.',
+            r'Divide: $\frac{12}{2}=6$. Then $6$+$2=8$.',
+            r'Divide: $\frac{12}{2}=6$. Then 6+2=8.',
+            original,
+        ):
+            q = self.question(detailed_solution_latex=original)
+            before = q.model_dump()
+            with self.subTest(repaired=repaired), patch.object(self.module, 'request_structured_json',
+                    return_value={'text': repaired}):
+                with self.assertRaises(ValueError):
+                    self.module.validate_generated_question_content(q, {4})
+            self.assertEqual(q.model_dump(), before)
+
+    def test_repair_cannot_bypass_command_or_brace_validation(self):
+        for original in (r'Divide: \frac{12}.', r'Use \unknown{x}.', r'Use x_{2.'):
+            q = self.question(detailed_solution_latex=original)
+            before = q.model_dump()
+            prefix, formula = original.split(' ', 1)
+            with self.subTest(original=original), patch.object(self.module, 'request_structured_json',
+                    return_value={'text': prefix + ' $' + formula + '$'}) as request:
+                with self.assertRaises(ValueError):
+                    self.module.validate_generated_question_content(q, {4})
+            request.assert_called_once()
+            self.assertEqual(q.model_dump(), before)
+
+    def test_valid_solutions_and_other_validation_errors_do_not_request_repairs(self):
+        with patch.object(self.module, 'request_structured_json') as request:
+            self.module.validate_generated_question_content(self.question(), {4})
+            for updates in ({'detailed_solution_latex': r'$\frac{1}$'},
+                            {'stem_text': r'Find \frac{1}{2}.'}, {'correct_answer': 'Z'}):
+                with self.subTest(updates=updates), self.assertRaises(ValueError):
+                    self.module.validate_generated_question_content(self.question(**updates), {4})
+        request.assert_not_called()
+
+    def test_review_solution_gets_format_only_repair(self):
+        q = self.question()
+        result = self.module.PracticeSetSchema(set_title='Test', total_questions=1, questions=[q])
+        original = r'Compute \frac{16}{2}=8. Choose B.'
+        repaired = r'Compute $\frac{16}{2}=8$. Choose B.'
+        review = {'questions': [dict(position=1, topic_id=4, unambiguous=True,
+            correct_answer='B', detailed_solution_latex=original)]}
+        with patch.object(self.module, 'request_structured_json', side_effect=[review, {'text': repaired}]) as request:
+            self.module.review_practice_set(result, [{'id': 4}])
+        self.assertEqual(request.call_count, 2)
+        self.assertEqual(result.questions[0].detailed_solution_latex, repaired)
+        self.assertEqual(result.questions[0].correct_answer, 'B')
+
 
 if __name__ == '__main__':
     unittest.main()

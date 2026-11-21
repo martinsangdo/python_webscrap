@@ -131,6 +131,27 @@ class ProviderTests(unittest.TestCase):
         self.assertNotIn('test-groq-key', str(caught.exception))
 
     @patch('ai_questions.httpx.post')
+    def test_413_identifies_stage_in_logs_and_exception(self, post):
+        self.module.AI_AGENT = 'groq'
+        post.return_value = httpx.Response(413,
+            request=httpx.Request('POST', 'https://api.groq.com/openai/v1/chat/completions'),
+            json={'error': {'message': 'TPM: Limit 8000, Requested 11056 test-groq-key'}})
+        for stage in ('whole_set_plan', 'practice_set', 'set_review', 'geometry_diagram'):
+            post.reset_mock()
+            with self.subTest(stage=stage), patch('builtins.print') as output:
+                with self.assertRaises(httpx.HTTPStatusError) as caught:
+                    self.module.request_structured_json('Private rules', 'Private question', {},
+                        {'json_schema': {'name': stage}})
+            logged = str(output.call_args_list)
+            self.assertIn(f'Groq HTTP 413 [stage={stage}]', logged)
+            self.assertIn(f'Request stage: {stage}', str(caught.exception))
+            self.assertIn('Limit 8000, Requested 11056', str(caught.exception))
+            for private in ('test-groq-key', 'Private rules', 'Private question'):
+                self.assertNotIn(private, logged)
+                self.assertNotIn(private, str(caught.exception))
+            post.assert_called_once()
+
+    @patch('ai_questions.httpx.post')
     def test_provider_output_validation_error_is_retryable(self, post):
         self.module.AI_AGENT = 'groq'
         post.return_value = httpx.Response(400,
@@ -214,6 +235,35 @@ class ProviderTests(unittest.TestCase):
             module = importlib.reload(self.module)
             self.assertEqual(module.AI_AGENT, 'groq')
             self.assertEqual(module.GROQ_MODEL, 'custom-model')
+
+    @patch('ai_questions.httpx.post')
+    def test_configured_budget_and_usage_logged_before_truncation_error(self, post):
+        self.module.AI_AGENT = 'groq'
+        post.return_value = self.response(reason='length')
+        post.return_value.json.return_value['usage'] = {
+            'prompt_tokens': 100, 'completion_tokens': 32000, 'total_tokens': 32100,
+            'completion_tokens_details': {'reasoning_tokens': 25000},
+        }
+        with patch.dict('os.environ', {'GROQ_MAX_COMPLETION_TOKENS': '32000'}), patch('builtins.print') as output:
+            with self.assertRaises(self.module.ResponseTokenLimitError):
+                self.module.request_practice_set('Private rules', 'Private question')
+        self.assertEqual(post.call_args.kwargs['json']['max_completion_tokens'], 32000)
+        logged = str(output.call_args_list)
+        for expected in ('practice_set', 'finish=length', 'prompt_tokens=100',
+                         'completion_tokens=32000', 'reasoning_tokens=25000', 'total_tokens=32100'):
+            self.assertIn(expected, logged)
+        for private in ('Private rules', 'Private question', 'test-groq-key'):
+            self.assertNotIn(private, logged)
+
+    @patch('ai_questions.httpx.post')
+    def test_invalid_budget_fails_before_http(self, post):
+        self.module.AI_AGENT = 'groq'
+        self.module.GROQ_MODEL = 'openai/gpt-oss-120b'
+        for value in ('0', '-1', 'abc', '1.5', '', '65537'):
+            with self.subTest(value=value), patch.dict('os.environ', {'GROQ_MAX_COMPLETION_TOKENS': value}):
+                with self.assertRaisesRegex(ValueError, 'GROQ_MAX_COMPLETION_TOKENS'):
+                    self.module.request_practice_set('Rules', 'Generate')
+        post.assert_not_called()
 
     def test_strict_schema_closes_every_object(self):
         schema = self.module.groq_response_format()['json_schema']['schema']
