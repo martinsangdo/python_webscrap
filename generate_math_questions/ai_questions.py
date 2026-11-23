@@ -23,7 +23,7 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") # Service key to bypass RLS write policies
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GROQ_API_KEYS = json.loads(os.getenv("GROQ_API_KEYS", "[]"))    #list of Groq API keys for rotation
-groq_api_key_index = 0  # Index to track the current Groq API key in use
+groq_api_key_index = 0  # Index to rotate through GROQ_API_KEYS
 
 AI_AGENT = os.getenv("AI_AGENT", "gemini").strip().lower()
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
@@ -396,6 +396,9 @@ APP LATEX FORMAT (applies to stems, options, hints, solutions, and proof answers
   backslash once for JSON; do not double-escape the decoded content.
 - Balance braces. Use braced arguments: \frac{a}{b}, \binom{n}{k}, \sqrt{x}.
   Brace subscripts and superscripts, e.g. R_{n}, 10^{n}; short forms are allowed.
+- Use plain brackets, e.g. $(x + 1)$ or $[x + 1]$, or paired \left and \right,
+  e.g. $\left(x + 1\right)$. Do not use \bigl, \bigr, or other manual
+  bracket-sizing commands.
 - Keep \text{...} short and inside math; explanatory sentences belong outside math.
 - Write currency in words (12 dollars), never currency dollar symbols.
 - Only these commands are permitted: """ + ', '.join(sorted(LATEX_COMMANDS))
@@ -1445,8 +1448,8 @@ def get_certification_ids():
     response = supabase.table("certifications").select("id").execute() 
     return [item["id"] for item in response.data]
 
-# Example usage:
-if __name__ == "__main__":
+def main():
+    global groq_api_key_index
     # codes = get_available_level_codes("IKMC")
     # Output: ['PRE_ECOLIER', 'ECOLIER', 'BENJAMIN', 'CADET', 'JUNIOR', 'STUDENT']
 
@@ -1459,13 +1462,30 @@ if __name__ == "__main__":
         set_certification_id = certification_ids[current_certification_index % len(certification_ids)]
         set_title = f"{set_certification_id} 2027 Practice {current_practice_index}"
         print(f"Generating practice set: {set_title}")
-        #generate 1 full practice set
-        generate_complete_practice_set(
-            certification_id=set_certification_id,   #required
-            set_title=set_title #required
-            # , level_code="PRIMARY_4", #optional
-            # grade=4,    #optional
-        )
+        # Resume the same set with each configured key at most once.
+        key_attempts = max(1, len(GROQ_API_KEYS)) if AI_AGENT == "groq" else 1
+        for key_attempt in range(key_attempts):
+            try:
+                generate_complete_practice_set(
+                    certification_id=set_certification_id,
+                    set_title=set_title,
+                )
+                break
+            except httpx.HTTPStatusError as error:
+                if (AI_AGENT != "groq" or error.response.status_code != 429
+                        or error.request.url.host != "api.groq.com"
+                        or key_attempt + 1 >= key_attempts):
+                    raise
+                groq_api_key_index = (groq_api_key_index + 1) % len(GROQ_API_KEYS)
+                print(
+                    f"Groq rate limit reached; retrying {set_title} with "
+                    f"API key {groq_api_key_index + 1}/{len(GROQ_API_KEYS)}.",
+                    flush=True,
+                )
         #increment the practice index for the next set
         current_practice_index += 1
         current_certification_index += 1
+
+
+if __name__ == "__main__":
+    main()
