@@ -22,7 +22,9 @@ load_dotenv(override=True)
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") # Service key to bypass RLS write policies
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GROQ_API_KEYS = json.loads(os.getenv("GROQ_API_KEYS", "[]"))    #list of Groq API keys for rotation
+groq_api_key_index = 0  # Index to track the current Groq API key in use
+
 AI_AGENT = os.getenv("AI_AGENT", "gemini").strip().lower()
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
 GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b").strip()
@@ -284,7 +286,7 @@ def request_structured_json(system_prompt, user_prompt, schema, groq_format):
     global ai_client
     if AI_AGENT not in {"gemini", "groq"}:
         raise ValueError("AI_AGENT must be 'gemini' or 'groq'")
-    key = GEMINI_API_KEY if AI_AGENT == "gemini" else GROQ_API_KEY
+    key = GEMINI_API_KEY if AI_AGENT == "gemini" else GROQ_API_KEYS[groq_api_key_index % len(GROQ_API_KEYS)]
     if not key or not key.strip():
         raise ValueError(f"{AI_AGENT.upper()}_API_KEY is required for AI_AGENT={AI_AGENT}")
     model = GEMINI_MODEL if AI_AGENT == "gemini" else GROQ_MODEL
@@ -1256,7 +1258,7 @@ def _generate_single_practice_set_with_checkpoint(
     if grade is not None and not level['target_grade_min'] <= grade <= level['target_grade_max']:
         raise ValueError(
             f"Grade {grade} is outside the supported range "
-            f"{level['target_grade_min']}–{level['target_grade_max']} for "
+            f"{level['target_grade_min']}-{level['target_grade_max']} for "
             f"{certification_id} / {level_code}"
         )
     grade_instruction = (
@@ -1324,7 +1326,7 @@ def _generate_single_practice_set_with_checkpoint(
     diagram_folder(certification_id, level_code, level, 0)
     if AI_AGENT not in {"gemini", "groq"}:
         raise ValueError("AI_AGENT must be 'gemini' or 'groq'")
-    selected_key = GEMINI_API_KEY if AI_AGENT == "gemini" else GROQ_API_KEY
+    selected_key = GEMINI_API_KEY if AI_AGENT == "gemini" else GROQ_API_KEYS[groq_api_key_index % len(GROQ_API_KEYS)]
     if not selected_key or not selected_key.strip():
         raise ValueError(f"{AI_AGENT.upper()}_API_KEY is required")
     saved_progress = checkpoint.load({
@@ -1423,7 +1425,7 @@ def _generate_single_practice_set_with_checkpoint(
         raise
 
     checkpoint.finish()
-    print(f"=== SUCCESS: Practice Set '{set_title}' (ID: {saved['set_id']}) with {saved['question_count']} questions Created & Published! ===")
+    print(f"====== SUCCESS: Practice Set '{set_title}' (ID: {saved['set_id']}) with {saved['question_count']} questions Created & Published! ===")
 
 #find out what levels of a certification
 def get_available_level_codes(certification_id: str) -> list[str]:
@@ -1439,14 +1441,31 @@ def get_available_level_codes(certification_id: str) -> list[str]:
     print(f"Available level codes for {certification_id}: {level_codes}")
     return level_codes
 
+def get_certification_ids():
+    response = supabase.table("certifications").select("id").execute() 
+    return [item["id"] for item in response.data]
+
 # Example usage:
 if __name__ == "__main__":
     # codes = get_available_level_codes("IKMC")
     # Output: ['PRE_ECOLIER', 'ECOLIER', 'BENJAMIN', 'CADET', 'JUNIOR', 'STUDENT']
 
-    generate_complete_practice_set(
-        certification_id="SASMO",   #required
-        set_title="SASMO 2027 Practice 1" #required
-    # , level_code="PRIMARY_4", #optional
-        # grade=4,    #optional
-    )
+    certification_ids = get_certification_ids()
+    print(f"Available certification IDs: {certification_ids}")
+    current_certification_index = 0
+    current_practice_index = 1
+
+    for current_practice_index in range(1, 2):  # Example: Generate 20 practice sets
+        set_certification_id = certification_ids[current_certification_index % len(certification_ids)]
+        set_title = f"{set_certification_id} 2027 Practice {current_practice_index}"
+        print(f"Generating practice set: {set_title}")
+        #generate 1 full practice set
+        generate_complete_practice_set(
+            certification_id=set_certification_id,   #required
+            set_title=set_title #required
+            # , level_code="PRIMARY_4", #optional
+            # grade=4,    #optional
+        )
+        #increment the practice index for the next set
+        current_practice_index += 1
+        current_certification_index += 1
