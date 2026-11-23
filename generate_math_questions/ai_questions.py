@@ -399,6 +399,8 @@ APP LATEX FORMAT (applies to stems, options, hints, solutions, and proof answers
 - Use plain brackets, e.g. $(x + 1)$ or $[x + 1]$, or paired \left and \right,
   e.g. $\left(x + 1\right)$. Do not use \bigl, \bigr, or other manual
   bracket-sizing commands.
+- Do not use \deg. For angle degrees, use $30^{\circ}$; for the degree of a
+  polynomial, use $\operatorname{deg}(p)$.
 - Keep \text{...} short and inside math; explanatory sentences belong outside math.
 - Write currency in words (12 dollars), never currency dollar symbols.
 - Only these commands are permitted: """ + ', '.join(sorted(LATEX_COMMANDS))
@@ -408,7 +410,7 @@ def normalize_latex_content(text):
     """Unwrap one outer math delimiter pair; leave questionable input for validation.
 
     Inline math in other fields must retain its delimiters. Never strip all dollars,
-    rewrite commands, or repeatedly unwrap nested/mixed math environments.
+    rewrite commands here, or repeatedly unwrap nested/mixed math environments.
     """
     if text is None or r"\$" in text:
         return text
@@ -427,6 +429,42 @@ def prose_has_latex(text):
     # ignore runs of at least two, unattached to a word, number, or command.
     without_blanks = re.sub(r'(?<![\w\\])(?:_{2,}|(?:\\_){2,})(?!\w)', '', text)
     return bool(re.search(r'[\\{}_^]', without_blanks))
+
+
+LATEX_COMMAND_ALIASES = {
+    'deg': r'\operatorname{deg}',
+    'leqslant': r'\leq', 'geqslant': r'\geq',
+    'lnot': r'\neg', 'wedge': r'\land', 'vee': r'\lor',
+    'varnothing': r'\emptyset', 'lbrace': r'\{', 'rbrace': r'\}',
+    'lbrack': '[', 'rbrack': ']',
+}
+
+
+def normalize_latex_commands(text, *, bare=False):
+    """Canonicalize known commands inside math; never guess unknown semantics.
+
+    Tokenizing control symbols as well as words preserves doubled backslashes.
+    Removing manual sizing affects presentation only, and requires a visible
+    delimiter so an invisible delimiter or malformed sizing command stays invalid.
+    """
+    if '$$' in text or r'\$' in text or (not bare and text.count('$') % 2):
+        return text
+    pieces = [text] if bare else text.split('$')
+    sizing = re.compile(r'(?:big|Big|bigg|Bigg)[lr]?\Z')
+    delimiter = re.compile(r'\s*(?:[()\[\]|]|\\(?:[{}]|(?:lvert|rvert|lVert|rVert|langle|rangle|lceil|rceil)\b))')
+    for index in range(0 if bare else 1, len(pieces), 1 if bare else 2):
+        piece = pieces[index]
+
+        def replace(match):
+            command = match[0][1:]
+            if command in LATEX_COMMANDS:
+                return match[0]
+            if sizing.fullmatch(command) and delimiter.match(piece, match.end()):
+                return ''
+            return LATEX_COMMAND_ALIASES.get(command, match[0])
+
+        pieces[index] = re.sub(r'\\(?:[A-Za-z]+|.)', replace, piece)
+    return pieces[0] if bare else '$'.join(pieces)
 
 
 def validate_latex_field(text, *, field, position, bare=False):
@@ -521,7 +559,7 @@ def validate_latex_field(text, *, field, position, bare=False):
 
 
 def validate_question_content(question, topic_ids):
-    """Normalize standalone math, then validate all display fields and answer keys."""
+    """Normalize supported aliases, then validate before committing any changes."""
     if question.topic_id not in topic_ids:
         raise ValueError(f"Question {question.position}: unknown topic_id {question.topic_id}")
     fields = {name: getattr(question, name) or "" for name in (
@@ -532,12 +570,15 @@ def validate_question_content(question, topic_ids):
         fields["correct_answer"] = question.correct_answer
     fields.update({f"options_json.{key}": value
                    for key, value in (question.options_json or {}).items()})
+    fields = {field: normalize_latex_commands(text, bare=field == 'latex_content')
+              for field, text in fields.items()}
     for field, text in fields.items():
         validate_latex_field(text, field=field, position=question.position,
                              bare=field == "latex_content")
     if question.question_type in {"MCQ_4_OPTION", "MCQ_5_OPTION"}:
         letters = "ABCD" if question.question_type == "MCQ_4_OPTION" else "ABCDE"
-        options = question.options_json or {}
+        options = {key: fields[f'options_json.{key}']
+                   for key in (question.options_json or {})}
         if set(options) != set(letters) or any(not v.strip() for v in options.values()):
             raise ValueError(f"Question {question.position}: expected nonempty options {letters}")
         normalized = [re.sub(r"\s+", " ", v.replace("$", "")).strip().casefold() for v in options.values()]
@@ -550,8 +591,13 @@ def validate_question_content(question, topic_ids):
             raise ValueError(f"Question {question.position}: integer answer required, with no options")
     elif question.question_type != "PROOF":
         raise ValueError(f"Question {question.position}: unsupported question type")
-    # Do not mutate rejected questions; only a successfully validated formula is saved.
-    question.latex_content = normalized_latex
+    # Commit atomically after content and answer validation, including duplicates
+    # that become identical when aliases are normalized.
+    for field, text in fields.items():
+        if not field.startswith('options_json.') and getattr(question, field) is not None:
+            setattr(question, field, None if field == 'latex_content' and normalized_latex is None else text)
+    if question.options_json is not None:
+        question.options_json = {key: fields[f'options_json.{key}'] for key in question.options_json}
 
 
 def only_adds_math_delimiters(original, repaired):
@@ -586,6 +632,8 @@ def validate_generated_question_content(question, topic_ids):
     original = getattr(question, repair_field)
     schema = {"type": "object", "properties": {"text": {"type": "string"}},
               "required": ["text"], "additionalProperties": False}
+    preservation_error = (f"Question {question.position}, {repair_field}: "
+                          "format repair must only add math delimiters, preserving all content")
     feedback = {}
     for attempt in range(1, 3):
         print(f"Repairing math delimiters in question {question.position}, "
@@ -595,7 +643,11 @@ def validate_generated_question_content(question, topic_ids):
             "delimiters around ALL formulas that are outside math. Preserve every original character "
             "in order, including whitespace, words, numbers and LaTeX commands. Leave existing "
             "$...$ spans unchanged. Keep explanatory prose outside math. Do not solve, correct, "
-            "shorten or rewrite anything. Return the full text. " + LATEX_FORMAT_RULES,
+            "shorten or rewrite anything. Do not normalize LaTeX commands, change brackets, "
+            "fix escaping, or change whitespace, even if the input looks incorrect. "
+            "Command normalization and validation happen separately after this step. "
+            "For example, input 'Find \\deg(p).' must become 'Find $\\deg(p)$.' "
+            "with the command unchanged. Return the full text in the JSON text field.",
             json.dumps({"text": original, **feedback}, ensure_ascii=False), schema,
             {"type": "json_schema", "json_schema": {
                 "name": "latex_format", "strict": True, "schema": schema,
@@ -604,20 +656,22 @@ def validate_generated_question_content(question, topic_ids):
         repaired = payload.get("text") if isinstance(payload, dict) else None
         try:
             if not isinstance(repaired, str) or not only_adds_math_delimiters(original, repaired):
-                raise ValueError(f"Question {question.position}, {repair_field}: "
-                                 "format repair must only add math delimiters, preserving all content")
+                raise ValueError(preservation_error)
             # Check this field before checking the whole question so an incomplete
             # repair can be retried without hiding unrelated validation failures.
-            validate_latex_field(repaired, field=repair_field, position=question.position)
+            validate_latex_field(normalize_latex_commands(repaired),
+                                 field=repair_field, position=question.position)
         except ValueError as error:
             remaining_prose = ([part for part in repaired.split('$')[::2]
                                 if prose_has_latex(part)]
                                if isinstance(repaired, str) else [])
             expected = (f"Question {question.position}, {repair_field}: "
                         "LaTeX outside math; wrap formulas in $...$ and keep prose outside")
-            if attempt < 2 and str(error) == expected:
+            if attempt < 2 and str(error) in {expected, preservation_error}:
                 feedback = {"previous_repair": repaired, "validation_error": str(error),
-                            "remaining_invalid_prose": remaining_prose}
+                            "remaining_invalid_prose": remaining_prose,
+                            "retry_instruction": "Start again from the original text. Only insert $; "
+                                                 "do not delete, replace, or reorder any character."}
                 continue
             print("LaTeX repair failed: " + json.dumps({
                 "position": question.position, "field": repair_field,
@@ -627,8 +681,9 @@ def validate_generated_question_content(question, topic_ids):
             raise
         candidate = question.model_copy(update={repair_field: repaired})
         validate_question_content(candidate, topic_ids)
-        setattr(question, repair_field, getattr(candidate, repair_field))
-        question.latex_content = candidate.latex_content
+        for field in ('stem_text', 'latex_content', 'detailed_solution_latex',
+                      'kid_friendly_hint', 'correct_answer', 'options_json'):
+            setattr(question, field, getattr(candidate, field))
         return
 
 

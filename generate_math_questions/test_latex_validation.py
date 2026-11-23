@@ -26,6 +26,81 @@ class LatexValidationTests(unittest.TestCase):
                 self.check(text)
         self.check(r'\frac{10^{n}-1}{9}', bare=True)
 
+    def test_common_aliases_normalize_offline_in_all_fields(self):
+        source = r'$\bigl(x\bigr) \leqslant \deg(p)$'
+        expected = r'$(x) \leq \operatorname{deg}(p)$'
+        q = self.question(stem_text=source, latex_content=source,
+                          detailed_solution_latex=source, kid_friendly_hint=source,
+                          options_json={'A': source, 'B': '$1$', 'C': '$2$', 'D': '$3$'})
+        allowed = self.module.LATEX_COMMANDS
+        with patch.object(self.module, 'request_structured_json') as request:
+            self.module.validate_generated_question_content(q, {4})
+            request.assert_not_called()
+        for field in ('stem_text', 'detailed_solution_latex', 'kid_friendly_hint'):
+            self.assertEqual(getattr(q, field), expected)
+        self.assertEqual(q.latex_content, expected[1:-1])
+        self.assertEqual(q.options_json['A'], expected)
+        self.assertIs(self.module.LATEX_COMMANDS, allowed)
+        self.assertNotIn('deg', allowed)
+        before = q.model_dump()
+        self.module.validate_question_content(q, {4})
+        self.assertEqual(q.model_dump(), before)
+        proof = self.question(question_type='PROOF', options_json=None, correct_answer=source)
+        self.module.validate_question_content(proof, {4})
+        self.assertEqual(proof.correct_answer, expected)
+
+    def test_aliases_and_sizing_preserve_supported_math(self):
+        for source, expected in (
+            (r'\Bigl[\biggl\{x\biggr\}\Bigr]', r'[\{x\}]'),
+            (r'\big\langle x\big\rangle', r'\langle x\rangle'),
+            (r'\lbrace x\rbrace', r'\{ x\}'),
+            (r'\lbrack x\rbrack', '[ x]'),
+            (r'\lnot p\wedge q\vee r', r'\neg p\land q\lor r'),
+            (r'x\geqslant y; A=\varnothing', r'x\geq y; A=\emptyset'),
+            (r'\left(x\right)+30^{\circ}', r'\left(x\right)+30^{\circ}'),
+        ):
+            with self.subTest(source=source):
+                actual = self.module.normalize_latex_commands(source, bare=True)
+                self.assertEqual(actual, expected)
+                self.check(actual, bare=True)
+
+    def test_normalization_keeps_unknown_malformed_and_overescaped_input_invalid(self):
+        for text in (r'$\\deg(p)$', r'$\\bigl(x)$', r'$\degreeUnknown$',
+                     r'$\degfoo$', r'$\unknown{x}$', r'$\bigl.$', r'$\bigl x$',
+                     r'$\bigl(\frac{1}\bigr)$', r'$$\deg(p)$$', r'$\deg(p)',
+                     r'Use \deg(p).'):
+            q = self.question(detailed_solution_latex=text, stem_text=r'$\deg(p)$')
+            before = q.model_dump()
+            with self.subTest(text=text), self.assertRaises(ValueError):
+                self.module.validate_question_content(q, {4})
+            self.assertEqual(q.model_dump(), before)
+
+    def test_normalized_duplicate_options_are_rejected_without_mutation(self):
+        q = self.question(options_json={'A': r'$\deg(p)$',
+                          'B': r'$\operatorname{deg}(p)$', 'C': '$1$', 'D': '$2$'})
+        before = q.model_dump()
+        with self.assertRaisesRegex(ValueError, 'duplicate answer options'):
+            self.module.validate_question_content(q, {4})
+        self.assertEqual(q.model_dump(), before)
+
+    def test_delimiter_repair_then_alias_normalization_commits_all_fields(self):
+        q = self.question(stem_text=r'Find \deg(p).', kid_friendly_hint=r'$\bigl(x\bigr)$')
+        with patch.object(self.module, 'request_structured_json',
+                          return_value={'text': r'Find $\deg(p)$.'}):
+            self.module.validate_generated_question_content(q, {4})
+        self.assertEqual(q.stem_text, r'Find $\operatorname{deg}(p)$.')
+        self.assertEqual(q.kid_friendly_hint, '$(x)$')
+
+    def test_review_normalizes_aliases(self):
+        from test_question_quality import QualityTests
+        fixture = QualityTests()
+        fixture.setUp()
+        fixture.review['questions'][0]['detailed_solution_latex'] = r'$\bigl(20-12\bigr)=8$'
+        result = fixture.result()
+        with patch.object(self.module, 'request_structured_json', return_value=fixture.review):
+            self.module.review_practice_set(result, fixture.topics)
+        self.assertEqual(result.questions[0].detailed_solution_latex, '$(20-12)=8$')
+
     def test_solution_ellipsis_and_ceiling_commands(self):
         for text in (
             r'Continue the sequence $1, 2, \dots, 10$.',
@@ -247,6 +322,38 @@ class LatexValidationTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     self.module.validate_generated_question_content(q, {4})
             self.assertEqual(q.model_dump(), before)
+
+    def test_repair_retries_command_rewrite_then_normalizes_locally(self):
+        original = r'Find \deg(p).'
+        rewritten = r'Find $\operatorname{deg}(p)$.'
+        q = self.question(detailed_solution_latex=original)
+        with patch.object(self.module, 'request_structured_json', side_effect=[
+                {'text': rewritten}, {'text': r'Find $\deg(p)$.'}]) as request:
+            self.module.validate_generated_question_content(q, {4})
+        self.assertEqual(request.call_count, 2)
+        self.assertEqual(q.detailed_solution_latex, rewritten)
+        prompt = request.call_args.args[0]
+        self.assertNotIn(self.module.LATEX_FORMAT_RULES, prompt)
+        self.assertIn('Do not normalize LaTeX commands', prompt)
+        retry = json.loads(request.call_args.args[1])
+        self.assertEqual(retry['text'], original)
+        self.assertEqual(retry['previous_repair'], rewritten)
+        self.assertIn('preserving all content', retry['validation_error'])
+
+    def test_repeated_rewrites_are_bounded_logged_and_never_committed(self):
+        original = r'Compute \frac{12}{2}=6.'
+        rewritten = r'Compute $\frac{12}{2}=7$.'
+        q = self.question(detailed_solution_latex=original)
+        before = q.model_dump()
+        with patch.object(self.module, 'request_structured_json',
+                          return_value={'text': rewritten}) as request, patch('builtins.print') as output:
+            with self.assertRaisesRegex(ValueError, 'preserving all content'):
+                self.module.validate_generated_question_content(q, {4})
+        self.assertEqual(request.call_count, 2)
+        self.assertEqual(q.model_dump(), before)
+        diagnostic = json.loads(output.call_args.args[0].removeprefix('LaTeX repair failed: '))
+        self.assertEqual(diagnostic['original_text'], original)
+        self.assertEqual(diagnostic['attempted_repair'], rewritten)
 
     def test_repair_cannot_bypass_command_or_brace_validation(self):
         for original in (r'Divide: \frac{12}.', r'Use \unknown{x}.', r'Use x_{2.'):
