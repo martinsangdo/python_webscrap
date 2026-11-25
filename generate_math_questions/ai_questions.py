@@ -1513,34 +1513,32 @@ def main():
     current_certification_index = 0
     current_practice_index = 1
 
-    for current_practice_index in range(1, 2):  # Example: Generate 20 practice sets
-        set_certification_id = certification_ids[current_certification_index % len(certification_ids)]
-        set_title = f"{set_certification_id} 2027 Practice {current_practice_index}"
-        print(f"Generating practice set: {set_title}")
-        # Resume the same set with each configured key at most once.
-        key_attempts = max(1, len(GROQ_API_KEYS)) if AI_AGENT == "groq" else 1
-        for key_attempt in range(key_attempts):
-            try:
-                generate_complete_practice_set(
-                    certification_id=set_certification_id,
-                    set_title=set_title,
-                )
-                break
-            except httpx.HTTPStatusError as error:
-                if (AI_AGENT != "groq" or error.response.status_code != 429
-                        or error.request.url.host != "api.groq.com"
-                        or key_attempt + 1 >= key_attempts):
-                    raise
-                groq_api_key_index = (groq_api_key_index + 1) % len(GROQ_API_KEYS)
-                print(
-                    f"Groq rate limit reached; retrying {set_title} with "
-                    f"API key {groq_api_key_index + 1}/{len(GROQ_API_KEYS)}.",
-                    flush=True,
-                )
-        #increment the practice index for the next set
-        current_practice_index += 1
-        current_certification_index += 1
-
+    #loop through certifications and generate practice sets for each
+    for current_certification_index in range(len(certification_ids)):
+        for current_practice_index in range(1, 2):  # Example: Generate 20 practice sets
+            set_certification_id = certification_ids[current_certification_index % len(certification_ids)]
+            set_title = f"{set_certification_id} 2027 Practice {current_practice_index}"
+            print(f"Generating practice set: {set_title}")
+            # Resume the same set with each configured key at most once.
+            key_attempts = max(1, len(GROQ_API_KEYS)) if AI_AGENT == "groq" else 1
+            for key_attempt in range(key_attempts):
+                try:
+                    generate_complete_practice_set(
+                        certification_id=set_certification_id,
+                        set_title=set_title,
+                    )
+                    break
+                except httpx.HTTPStatusError as error:
+                    if (AI_AGENT != "groq" or error.response.status_code != 429
+                            or error.request.url.host != "api.groq.com"
+                            or key_attempt + 1 >= key_attempts):
+                        raise
+                    groq_api_key_index = (groq_api_key_index + 1) % len(GROQ_API_KEYS)
+                    print(
+                        f"Groq rate limit reached; retrying {set_title} with "
+                        f"API key {groq_api_key_index + 1}/{len(GROQ_API_KEYS)}.",
+                        flush=True,
+                    )
 
 if __name__ == "__main__":
     main()
